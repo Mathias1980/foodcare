@@ -1,0 +1,115 @@
+body {
+    font-family: sans-serif;
+}
+
+.fehler {
+    color: red;
+}
+
+table {
+  border-collapse: collapse;
+  border: 2px solid rgb(140 140 140);
+  font-family: sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+}
+
+td {
+  border: 1px solid rgb(160 160 160);
+  padding: 8px 10px;
+}
+
+td:last-of-type {
+  text-align: center;
+}
+
+tbody > tr:nth-of-type(even) {
+  background-color: rgb(237 238 242);
+}
+
+.pointer {cursor: pointer;}
+
+td:hover {
+  background-color: #57b0ff;
+}
+
+.header h1 {
+    font-size: 0.8rem;
+}
+
+
+.topnav1 {
+  background-color: #333;
+  overflow: hidden;
+}
+
+.topnav1 a {
+  float: left;
+  color: #f2f2f2;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+  font-size: 17px;
+}
+
+.topnav1 a:hover {
+  background-color: #a3c3f7;
+  color: black;
+}
+
+.topnav1 a.active {
+  background-color: #4287f5;
+  color: white;
+}
+
+
+
+
+
+
+
+
+
+
+
+.topnav {
+  background-color: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  overflow: hidden;
+}
+
+.topnav-links {
+  display: flex;
+  list-style: none;
+}
+
+.topnav-links li a {
+  color: #f2f2f2;
+  text-align: center; 
+  text-decoration: none;
+  font-size: 17px;
+  margin: 0;
+  padding: 10px 10px;
+  background-color: #333;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.topnav-links a:hover {
+  background-color: #a3c3f7;
+  color: black;
+}
+
+.topnav-links a.active {
+  background-color: #4287f5;
+  color: white;
+}
+
+.topnav-text {
+  color: white;
+  padding: 0px 20px;
+  text-decoration: none;
+}
+
+    

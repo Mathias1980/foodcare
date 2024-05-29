@@ -1,0 +1,411 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" >
+    <head>
+        <title>Foodcae</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <link th:href="@{/css/styles.css}" rel="stylesheet" />
+        <link th:href="@{/css/rezepte.css}" rel="stylesheet" />
+        
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        <script src="/js/mllib.js" defer="defer"></script>
+        <script src="/js/foodcare.js" defer="defer"></script>
+        
+        <script th:inline="javascript">
+            
+            /*<![CDATA[*/
+                const data = {
+                    bls: /*[[${bls}]]*/ 'default',                   
+                    user: /*[[${user}]]*/ 'default',
+                    gerichte: /*[[${gerichte}]]*/ 'default',
+                    hashtags: /*[[${hashtags}]]*/ 'default',
+                    zutaten: {
+                        user: true,
+                        hashtags: false,
+                        kategorie: false,
+                        params: {
+                            hashtags: [],
+                            kategorie: ''
+                        },
+                        data: /*[[${zutatenUser}]]*/ 'default'
+                    },
+                    get kategorien(){
+                        return this.gerichte.map(el => el.kategorie).filter((v, i, self) => {
+                            return i === self.indexOf(v);
+                        });
+                    },
+                    suche(term){
+                        return this.bls.filter(e => e.st.toLowerCase().includes(term.toLowerCase()));
+                    },
+                    sucheBySbls(sbls){
+                        return this.bls.filter(e => e.sbls.toLowerCase() === sbls.toLowerCase());
+                    },
+                    gerichtById(id){
+                        return this.gerichte.filter(e => e.id === id);
+                    },
+                    gerichtBySuche(suche){
+                        return this.gerichte.filter(e => e.suche === suche);
+                    },
+                    putGericht(gericht){
+                        this.gerichte.forEach((g, i) => {
+                            if (g.id === gericht.id) {
+                                this.gerichte.splice(i, 1);
+                            }
+                        });
+                        this.gerichte.push(gericht);
+                    },
+                    delGericht(id){
+                        this.gerichte.forEach((g, i) => {
+                            if (g.id === id) {
+                                this.gerichte.splice(i, 1);
+                            }
+                        });
+                    }
+                }
+            /*]]>*/
+            
+        'use strict';
+
+        document.addEventListener("DOMContentLoaded", evt => {
+
+            const eingabe1 = document.querySelector('#eingabe1');
+            const eingabe2 = document.querySelector('#eingabe2');
+            const ausgabe = document.querySelector('#tb');
+            const zutaten = document.querySelector('#zutaten');
+            const rezept = document.querySelector('#rezept');
+            const fehler = document.querySelector("#fehler");
+            const message = document.querySelector("#message");
+            const menge = document.querySelector("#menge");
+            const confirm = document.querySelector("#confirm");
+            const save = document.querySelector("#save");
+            const del = document.querySelector("#del");
+            const hashtagContainer = document.getElementById('hashtagContainer');
+            const _rezeptwahl = document.querySelector("#_rezeptwahl");
+            const rezeptwahl = document.querySelector("#rezeptwahl");
+            const _kategorie = document.querySelector("#_kategorie");
+            
+            const addZutat = evt => {
+                let test = Array.from(zutaten.childNodes).filter( el => el.dataset.sbls === evt.target.dataset.sbls);
+                if(test.length > 0) {
+                    fehler.innerHTML = 'Schon vorhanden.';
+                }else{
+                    fehler.innerHTML = '';
+                    let li = createDOM(evt.target.innerHTML, 'li', zutaten);
+                    li.setAttribute('data-sbls', evt.target.dataset.sbls);
+                    li.setAttribute('data-id', findMaxID(zutaten.childNodes));
+                    mengenDialog.showModal(); 
+                }
+            }
+            
+            const removeZutat = evt => {
+                evt.target.parentNode.remove();
+            }
+            
+            const handleConfirmDialog = evt => {
+                let li = findElementMaxId(zutaten.childNodes);
+                li.setAttribute('data-menge', menge.value); 
+                li.innerHTML = menge.value + 'g ' + li.innerHTML;
+                let entfernen = createDOM('Entfernen', 'button', li);
+                entfernen.addEventListener('click', removeZutat);
+                document.querySelector('#menge').value = '';
+            }
+
+            const handleZutatEingabe = evt => { 
+                let el = evt.target.value;               
+                if(el.length > 3) {
+                    ausgabe.replaceChildren();
+                    if(evt.target.id === 'eingabe2'){                       
+                        data.suche(el).forEach( (item) => {
+                            let tr = createDOM('', 'tr', ausgabe);
+                            let td = createDOM(item.st, 'td', tr, 'pointer');
+                            td.setAttribute('data-sbls', item.sbls);
+                            td.addEventListener('click', addZutat);
+                        });
+                    }else if(evt.target.id === 'eingabe1'){
+                        data.sucheByUser(el).forEach( (item) => {
+                            let tr = createDOM('', 'tr', ausgabe);
+                            let td = createDOM(item.st, 'td', tr, 'pointer');
+                            td.setAttribute('data-sbls', item.sbls);
+                            td.addEventListener('click', addZutat);
+                        });
+                    }
+                }
+            }
+            
+            const handleZutatFocus = evt => {
+                ausgabe.replaceChildren();
+                data.zutaten.data.forEach( (item) => {
+                    let tr = createDOM('', 'tr', ausgabe);
+                    let td = createDOM(item.st, 'td', tr, 'pointer');
+                    td.setAttribute('data-sbls', item.sbls);
+                    td.addEventListener('click', addZutat);
+                });
+            }
+            
+            const handleSave = evt => {
+                
+                let elements = [...evt.target.closest('fieldset').elements];
+
+                let gericht = {
+                    id: parseInt(rezept.dataset.id),
+                    titel: elements.filter( el => el.id === 'titel' )[0].value,
+                    kategorie: elements.filter( el => el.id === 'kategorie' )[0].value,
+                    anleitung: elements.filter( el => el.id === 'anleitung' )[0].value,
+                    username: data.user.username,
+                    zutaten: Array.from(zutaten.childNodes).map(el => ({
+                        sbls: el.dataset.sbls,
+                        menge: el.dataset.menge
+                      })),
+                    hashtags: Array.from(hashtagContainer.childNodes).filter(el => el.classList.contains("selected")).map(el => ({
+                        id: el.dataset.id,
+                        bez: el.textContent
+                      }))
+                };
+                
+                console.log(gericht);
+                if(gericht.id === 0){                   
+                    axios.post('/gerichte', gericht).then( res => {
+                        data.gerichte.push(res.data);
+                        clearFieldset();
+                        setRezeptwahl();
+                        message.innerHTML = res.data.message;
+                    }).catch(err => {
+                        console.log(err);
+                        fehler.innerHTML = err.code + ' ' + err.response.data;
+                    }); 
+                }else{
+                    axios.put('/gerichte/' + gericht.id, gericht).then( res => {
+                        data.putGericht(res.data);
+                        clearFieldset();
+                        message.innerHTML = res.data.message;
+                    }).catch(err => {
+                        console.log(err);
+                        fehler.innerHTML = err.code + ' ' + err.response.data;                      
+                    });
+                }
+                
+            }
+            
+            const handleDel = (evt) => {
+                let gerichtID = parseInt(rezept.dataset.id);
+                if(gerichtID > 0){
+                    axios.delete('/gerichte/' + gerichtID).then( res => {
+                        data.delGericht(gerichtID);
+                        clearFieldset();
+                    }).catch(err => {
+                        fehler.innerHTML = err.code + ' ' + err.response.data;
+                    });
+                }else{
+                    clearFieldset();
+                }
+            }
+            
+            const clearFieldset = () => {
+                [...zutaten.childNodes].forEach(li => li.remove());
+                [...hashtagContainer.childNodes].forEach(el => el.classList.remove("selected"));
+                rezept.querySelectorAll('input').forEach(input => input.value = '');
+                rezept.setAttribute('data-id', 0);
+                fehler.value = '';
+                setRezeptwahl();
+                setKategorien();
+            }
+            
+            const handleRezeptwahl = (evt) => {                
+                let suche = evt.target.value; 
+                let gericht = data.gerichtBySuche(suche)[0];
+                setRezept(gericht);
+            }
+            
+            const setRezept = (dto) => {
+                clearFieldset();
+                rezept.querySelector("#titel").value = dto.titel;
+                rezept.querySelector("#kategorie").value = dto.kategorie;
+                rezept.querySelector("#anleitung").value = dto.anleitung;
+                rezept.setAttribute('data-id', dto.id);
+                dto.zutaten.forEach( el => {
+                    let li = createDOM(el.menge + 'g ' + data.sucheBySbls(el.sbls)[0].st, 'li', zutaten);
+                    li.setAttribute('data-sbls', el.sbls);
+                    li.setAttribute('data-menge', el.menge);
+                    li.setAttribute('data-id', findMaxID(zutaten.childNodes));
+                    let entfernen = createDOM('Entfernen', 'button', li);
+                    entfernen.addEventListener('click', removeZutat);
+                });
+                dto.hashtags.forEach(el => {
+                    [...hashtagContainer.querySelectorAll(".hashtag")].filter(tag => parseInt(tag.dataset.id) === el.id)[0].classList.toggle('selected');
+                });
+                
+                rezeptwahl.value = '';
+            }          
+            
+            const getZutaten = () => {
+                let url = '/bls/zutaten';
+                
+                if(data.zutaten.user) url = url + '/user';
+                if(data.zutaten.hashtags) url = url + '/hashtags';
+                if(data.zutaten.kategorie) url = url + '/kategorie';
+                
+                axios.get(url, {
+                    params: data.zutaten.params,
+                    paramsSerializer: {
+                        indexes: null
+                    }
+                })
+                .then(res => {
+                    data.zutaten.data = res.data;
+                    ausgabe.replaceChildren();
+                }).catch(err => console.log(err));               
+            }
+            
+            const setKategorien = () => {
+                [..._kategorie.childNodes].forEach(opt => opt.remove());
+                data.kategorien.forEach(el => {
+                    let opt = document.createElement('option');
+                    opt.value = el;
+                    _kategorie.appendChild(opt); 
+                });
+            }
+            
+            const setRezeptwahl = () => {
+                [..._rezeptwahl.childNodes].forEach(opt => opt.remove());
+                data.gerichte.forEach(el => {
+                    let opt = document.createElement('option');
+                    opt.value = el.suche;
+                    opt.setAttribute('data-id', el.id);
+                    _rezeptwahl.appendChild(opt); 
+                });
+            }
+            
+            const init = () => {
+                
+                console.log(data);
+                
+                rezept.setAttribute('data-id', 0);
+                hashtagContainer.setAttribute('data-anzahl', 0);
+                
+                setKategorien();
+                setRezeptwahl();
+                
+                data.hashtags.forEach(tag => {
+                    const span = document.createElement('span');
+                    span.className = 'hashtag';
+                    span.textContent = tag.bez;
+                    span.setAttribute('data-id', tag.id);
+                    span.addEventListener('click', () => {
+                        span.classList.toggle('selected');                           
+                    });
+                    span.addEventListener('mouseenter', () => {
+                        span.classList.toggle('selected');
+                    });
+                    span.addEventListener('mouseout', () => {
+                        span.classList.toggle('selected');
+                        data.zutaten.params.hashtags = Array.from(hashtagContainer.childNodes).filter(el => el.classList.contains("selected")).map(tag => tag.textContent);
+                        if(data.zutaten.params.hashtags.length !== parseInt(hashtagContainer.dataset.anzahl)){
+                            hashtagContainer.setAttribute('data-anzahl', data.zutaten.params.hashtags.length);
+                            if(data.zutaten.hashtags){
+                                getZutaten();                               
+                            }
+                        }                                              
+                    });
+                    hashtagContainer.appendChild(span);
+                });
+                
+                document.querySelectorAll('input[name="zutatenSelect"]').forEach((el) => {
+                    el.addEventListener("change", (evt) => {
+                      if(evt.target.value === 'user') data.zutaten.user = true;
+                      if(evt.target.value === 'all') data.zutaten.user = false;
+                      getZutaten();
+                    });
+                });
+                
+                document.querySelector('#zutatenKategorie').addEventListener("change", (evt) => {
+                    evt.target.checked ? data.zutaten.kategorie = true : data.zutaten.kategorie = false;
+                    getZutaten();
+                }); 
+                
+                document.querySelector('#zutatenHashtags').addEventListener("change", (evt) => {
+                    evt.target.checked ? data.zutaten.hashtags = true : data.zutaten.hashtags = false;
+                    if(data.zutaten.params.hashtags.length > 0) getZutaten();
+                }); 
+                
+                document.querySelector('#kategorie').addEventListener("input", (evt) => {
+                    data.zutaten.params.kategorie = evt.target.value;
+                    if(data.zutaten.kategorie) getZutaten();
+                }); 
+            }
+            
+            eingabe1.addEventListener('keyup', handleZutatEingabe);
+            eingabe1.addEventListener('focus', handleZutatFocus);
+            eingabe2.addEventListener('keyup', handleZutatEingabe);
+            confirm.addEventListener('click', handleConfirmDialog);
+            save.addEventListener('click', handleSave);
+            del.addEventListener('click', handleDel);
+            rezeptwahl.addEventListener('input', handleRezeptwahl);
+            
+            init();
+
+        });
+        </script> 
+    </head>
+    <body>
+        <header th:replace="fragments/header.xhtml :: header">...</header>
+      
+        <section id="rezeptwahlsection">
+            <input id="rezeptwahl" name="rezeptwahl" placeholder="Rezepte ..." class="rezeptwahl_" list="_rezeptwahl" />
+            <datalist id="_rezeptwahl" class="rezeptwahl_"></datalist>
+        </section>
+        
+        <section id="rezept">
+            <fieldset>
+                <legend>Rezept</legend>
+                <label for="titel">Titel<span id="mTitel"></span></label>
+                <input type="text" id="titel" autocomplete="off"/><br/>
+                <label for="kategorie">Kategorie<span id="mKategorie"></span></label>
+                <input type="text" id="kategorie" autocomplete="off" list="_kategorie"/><br/>
+                <datalist id="_kategorie" ></datalist>
+                <div class="hashtags" id="hashtagContainer"></div>
+                <div class="zutaten-input-container">
+                    <input type="text" id="eingabe1" name="eingabe1" placeholder="Zutat hinzufügen" autocomplete="off"/>
+                    <input type="text" id="eingabe2" name="eingabe2" placeholder="BLS hinzufügen" autocomplete="off"/>
+                </div>
+                <label for="anleitung">Anleitung<span id="mAnleitung"></span></label>
+                <input type="text" id="anleitung" autocomplete="off"/><br/>
+                <button id="save" value="default">Speichern</button>
+                <button id="del" value="default">Löschen</button>
+                <ul id="zutaten"></ul>
+                <p id="fehler" class="fehler"></p>
+                <p id="message"></p>
+            </fieldset>           
+        
+            <div class="liste"> 
+                <div id="zutatenSelection" class="zutatenSelection">
+                    <label for="zutatenUser">Benutzer<input type="radio" id="zutatenUser" name="zutatenSelect" value="user" checked="checked" /></label>
+                    <label for="zutatenAlle">Alle<input type="radio" id="zutatenAlle" name="zutatenSelect" value="all"/></label>
+                    <label for="zutatenKategorie">Kategorie<input type="checkbox" id="zutatenKategorie" value="kat" /></label>
+                    <label for="zutatenHashtags">Hashtags<input type="checkbox" id="zutatenHashtags" value="hash" /></label>
+                </div>
+              <div id="tabelle">
+                <table>
+                  <tbody id="tb">
+
+                  </tbody>
+                </table>
+              </div>
+            </div>
+        </section>
+        
+        <dialog id="mengenDialog">
+          <form method="dialog">
+            <p>
+              <label>
+                Menge in Gramm:
+                <input type="text" id="menge" autocomplete="off"/>
+              </label>
+            </p>
+            <div>
+              <button id="confirm" value="default">Ok</button>
+            </div>
+          </form>
+        </dialog>
+
+    </body>
+</html>

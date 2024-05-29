@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" >
+    <head>
+        <title>Login</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <link th:href="@{/css/styles.css}" rel="stylesheet" />
+    </head>
+    <body>
+        <h1>Login</h1>
+            <div th:if="${param.error}">
+                <div class="fehler">Ungültiger Benutzername und Passwort.</div>
+            </div>
+            <div th:if="${param.logout}">
+                <div class="fehler">Sie sind ausgeloggt.</div>
+            </div>
+        <form th:action="@{/anmeldung}" method="post">
+            <input type="text" name="username" placeholder="Benutzername" autocomplete="off"/>
+            <input type="password" name="password" placeholder="Passwort"/>
+            <button type="submit">Anmelden</button>
+        </form>
+        <p><a href="/register">Hier registrieren</a></p>
+    </body>
+</html>

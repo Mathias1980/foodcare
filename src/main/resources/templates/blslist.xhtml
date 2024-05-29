@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" >
+    <head>
+        <title>BLS - Liste</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <link th:href="@{/css/styles.css}" rel="stylesheet" />
+        <script src="https://code.highcharts.com/highcharts.js"></script>
+        <script src="/js/foodcare.js" defer="true"></script>
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+                const data = {
+                    colors: /*[[${colors}]]*/ 'default',
+                    untergruppen: /*[[${ug}]]*/ 'default',
+                    avgG: /*[[${avgG}]]*/ 'default',
+                    avgUG: {},
+                    avgHG: {},
+                    blsdto: [],
+                    getColor: function(z) {
+                      let key = Object.keys(this.colors).find(k => z.includes(k));
+                      return key ? this.colors[key] : null;
+                    },
+                    untergruppenByHG(hg){
+                        return this.untergruppen.filter(e => e.hauptgruppe === hg);
+                    }
+                }
+            /*]]>*/
+        </script> 
+        <script>
+        'use strict';
+        
+        document.addEventListener("DOMContentLoaded", evt => {
+            
+            const blswahl = document.querySelector('#blswahl');
+            
+            const calculatePercentage = (value, total) => (value / total) * 100;          
+        
+            const basisOptionen = {
+                
+                chart: {
+                    type: 'bar'
+                },
+                title: {
+                    text: null
+                },
+                xAxis: {
+                    title: {
+                        text: null
+                    },
+                    gridLineWidth: 1,
+                    lineWidth: 0,
+                    labels: {
+                        useHTML: true,
+                        format: '<b>{value}</b>'
+                    },
+                    type: 'category'
+                },
+                yAxis: {
+                    min: 0,
+                    title: {
+                        text: '% Tagesdosis',
+                        align: 'high'
+                    },
+                    labels: {
+                        overflow: 'justify'
+                    },
+                    gridLineWidth: 0,
+                    opposite: true,
+                    plotLines: [{
+                        color: 'red', 
+                        width: 3, 
+                        value: 100
+                    }]
+                },
+                tooltip: {
+                    valueSuffix: ' % Tagesdosis'
+                },
+                plotOptions: {
+                    bar: {
+                        borderRadius: '50%',
+                        groupPadding: 0.1
+                    }
+                },
+                legend: {
+                    layout: 'vertical',
+                    align: 'right',
+                    verticalAlign: 'top',
+                    x: -40,
+                    y: 80,
+                    floating: true,
+                    borderWidth: 1,
+                    backgroundColor:
+                        Highcharts.defaultOptions.legend.backgroundColor || '#FFFFFF',
+                    shadow: true
+                },
+                credits: {
+                    enabled: false
+                },
+                series: [{
+                    dataLabels: {
+                        enabled: true,
+                        format: ''
+                        //format: '{y} {point.dimension}'
+                    },
+                    showInLegend: false
+                }]
+            };
+            
+            const erstelleChart = (containerId, spezifischeOptionen) => {
+                return Highcharts.chart(containerId, Highcharts.merge(basisOptionen, spezifischeOptionen));
+            }
+            
+            const chart = erstelleChart('container', basisOptionen);
+
+            const init = () => {   
+                loadUntergruppe(document.querySelector('#hg').value, document.querySelector('#ug'));
+            }
+
+            const loadUntergruppe = (hg, slctUntergruppe) => {               
+                fetch('/bls/avgHG/' + hg).then(
+                    res => res.json()
+                ).then( res => {
+                    data.avgHG = res;
+                    while (slctUntergruppe.firstChild) {
+                        slctUntergruppe.removeChild(slctUntergruppe.firstChild);
+                    }
+                    let ugs = data.untergruppenByHG(hg); 
+                    for (let ug of ugs) {
+                        let optionUG = document.createElement('option');
+                        optionUG.innerHTML = ug.text;
+                        optionUG.value = ug.hauptgruppe + ug.untergruppe;
+                        slctUntergruppe.append(optionUG);                      
+                    }
+                }).catch(
+                    error => {
+                    console.error('Ein Fehler ist aufgetreten:', error);
+                })
+            }
+            
+            const loadReducedBLS = (ug, slctReducedBls) => {               
+                Promise.all([
+                    fetch('/bls/reducedbls/' + ug),
+                    fetch('/bls/avgUG/' + ug)
+                  ]).then(responses => {
+                    return Promise.all(responses.map(res => res.json()));
+                  }).then(res => {
+                        data.avgUG = res[1];  
+                        
+                        while (slctReducedBls.firstChild) {
+                            slctReducedBls.removeChild(slctReducedBls.firstChild);
+                        }
+                        for (let bls of res[0]) {
+                            let optionBls = document.createElement('option');
+                            optionBls.innerHTML = bls.st;
+                            optionBls.value = bls.sbls;
+                            slctReducedBls.append(optionBls);
+                        }
+                  }).catch(error => {
+                    console.error('Ein Fehler ist aufgetreten:', error);
+                  });
+            }
+            
+            const addColors = (chartdata) => {
+                return chartdata
+                        .map(obj => {
+                            return {
+                              ...obj,
+                              color: data.getColor(obj.zuordnung) 
+                            };
+                          })
+                        .sort((a,b) => a.feld - b.feld)
+            }           
+            
+            const drawChart = (evt) => {
+                
+                const setChart = (rel) => {
+                    let chartdata = [...data.blsdto].map(obj => ({
+                            ...obj,
+                            y: parseFloat(calculatePercentage(obj.abs, data[rel][obj.kurz.toLowerCase()]).toFixed(2))
+                          }));
+                    chart.setTitle({text: '100g ' + [...evt.target.closest('fieldset').elements].filter( el => el.id === 'blsReduced' )[0].options[[...evt.target.closest('fieldset').elements].filter( el => el.id === 'blsReduced' )[0].selectedIndex].text});
+                    chart.setSize(undefined, chartdata.length * 23);
+                    chart.series[0].setData(addColors(chartdata));
+                } 
+                
+                if(evt.target.id === 'blsReduced'){
+                    console.log([...evt.target.closest('fieldset').elements].filter( el => el.id === 'blsReduced' )[0].value);
+                    let sbls = [...evt.target.closest('fieldset').elements].filter( el => el.id === 'blsReduced' )[0].value;
+                    fetch('/bls/dto/' + sbls).then(
+                        res => res.json()
+                    ).then( blsdto => {
+                        data.blsdto = [...blsdto];
+                        if([...evt.target.closest('fieldset').elements].filter( el => el.id === 'rel1' )[0].checked){
+                            let chartdata = addColors(blsdto).filter((obj) => obj.info === 'user');
+                            chart.setTitle({text: '100g ' + [...evt.target.closest('fieldset').elements].filter( el => el.id === 'blsReduced' )[0].options[[...evt.target.closest('fieldset').elements].filter( el => el.id === 'blsReduced' )[0].selectedIndex].text});
+                            chart.setSize(undefined, chartdata.length * 23);
+                            chart.series[0].setData(chartdata);
+                        }else{
+                            setChart(evt.target.closest('fieldset').querySelector('input[type="radio"]:checked').value);
+                        }
+                    }).catch(
+                        error => {
+                        console.error('Ein Fehler ist aufgetreten:', error);
+                    }) 
+                }else{
+                    if([...evt.target.closest('fieldset').elements].filter( el => el.id === 'rel1' )[0].checked){
+                        let chartdata = addColors([...data.blsdto]).filter((obj) => obj.info === 'user');
+                        chart.setTitle({text: '100g ' + [...evt.target.closest('fieldset').elements].filter( el => el.id === 'blsReduced' )[0].options[[...evt.target.closest('fieldset').elements].filter( el => el.id === 'blsReduced' )[0].selectedIndex].text});
+                        chart.setSize(undefined, chartdata.length * 23);
+                        chart.series[0].setData(chartdata);
+                    }else{
+                        setChart(evt.target.closest('fieldset').querySelector('input[type="radio"]:checked').value);
+                    }
+                }                             
+            }
+            
+            init();
+            
+            blswahl.addEventListener('change', (evt) => {
+                
+                console.log([...evt.target.closest('fieldset').elements].filter( el => el.id === 'hg' )[0].value);
+                
+                if (evt.target.id === 'hg') {                   
+                    console.log('hg ' + evt.target.value);
+                    loadUntergruppe(evt.target.value, [...evt.target.closest('fieldset').elements].filter( el => el.id === 'ug' )[0]);
+                }else if (evt.target.id === 'ug') {
+                    console.log('ug ' + evt.target.value);
+                    loadReducedBLS(evt.target.value, [...evt.target.closest('fieldset').elements].filter( el => el.id === 'blsReduced' )[0]);
+                }else if (evt.target.id === 'blsReduced' || evt.target.type === 'radio') {
+                    drawChart(evt);
+                }
+            });
+            
+        });
+
+        </script>
+    </head>
+    <body>
+        <header th:replace="fragments/header.xhtml :: header">...</header> 
+        
+        <h1>Bundeslebensmittelschlüssel BLS-Version 3.02</h1>
+
+        <fieldset id="blswahl">
+            <!-- Dropdown-Menü für ArrayList "hg" -->
+            <label for="hg">Hauptgruppe:</label>
+            <select id="hg">
+                <option th:each="item : ${hg}" th:value="${item.zeichen}" th:text="${item.text}"></option>
+            </select>
+
+            <br/><br/>
+
+            <!-- Dropdown-Menü für ArrayList "ug" -->
+            <label for="ug">Untergruppe:</label>
+            <select id="ug">
+            </select>
+
+            <br/><br/>
+
+            <!-- Dropdown-Menü für ArrayList "ug" -->
+            <label for="blsReduced">BLS:</label>
+            <select id="blsReduced">
+            </select>
+
+            <br/><br/>
+
+            <div class="rel">
+                Relation:
+                <label for="rel1">DGE</label>
+                <input type="radio" id="rel1" name="blswahl" value="rel1" checked="checked"/>
+                <label for="rel2">Untergruppe</label>
+                <input type="radio" id="rel2" name="blswahl" value="avgUG" />
+                <label for="rel3">Hauptgruppe</label>
+                <input type="radio" id="rel3" name="blswahl" value="avgHG" />
+                <label for="rel4">Gesamt</label>
+                <input type="radio" id="rel4" name="blswahl" value="avgG" />
+            </div>
+        </fieldset>
+        
+        <br/><br/>
+        
+        <figure>
+            <div id="container"></div>
+            <div id="container2"></div>
+            <div id="container3"></div>
+            <div id="container4"></div>
+            <div id="container5"></div>
+        </figure>
+        
+    </body>
+</html> 

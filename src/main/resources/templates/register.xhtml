@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" >
+    <head>
+        <title>Foodcare</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <link th:href="@{/css/styles.css}" rel="stylesheet" />
+    </head>
+    <body>
+        <h1>Registrierung</h1>
+        <form action="#" th:action="@{/register}" th:object="${user}" method="post">
+            <table>
+                <tr>
+                    <td>Name:</td>
+                    <td><input type="text" th:field="*{username}" /></td>
+                    <td class="fehler" th:if="${#fields.hasErrors('username')}" th:errors="*{username}">Error</td>
+                </tr>
+               <tr>
+                    <td>Kennwort:</td>
+                    <td><input type="password" th:field="*{password}" /></td>
+                    <td class="fehler" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">Error</td>
+                </tr>
+                <tr>
+                    <td>Mailadresse:</td>
+                    <td><input type="email" th:field="*{email}" /></td>
+                    <td class="fehler" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">Error</td>
+                </tr>
+                <tr>
+                    <td>Alter (1 - 99):</td>
+                    <td><input type="text" th:field="*{age}" /></td>
+                    <td class="fehler" th:if="${#fields.hasErrors('age')}" th:errors="*{age}">Error</td>
+                </tr>
+                 <tr>
+                    <td>Geschlecht:</td>
+                    <td>
+                        <select id="gender" name="gender" th:field="*{gender}" style="width: 200px">
+                            <option value="m">Männlich</option>
+                            <option value="w">Weiblich</option>
+                        </select>
+                    </td>
+                    <td class="fehler" th:if="${#fields.hasErrors('gender')}" th:errors="*{gender}">Error</td>
+                </tr>
+                <tr>
+                    <td>Leistungsumsatz:</td>
+                    <td>
+                        <select id="pal" name="pal" th:field="*{pal}" style="width: 200px">
+                            <option value="1.4">ausschließlich sitzende Tätigkeit mit wenig oder keiner anstrengenden Freizeitaktivität</option>
+                            <option value="1.6">überwiegend gehende und stehende Arbeit mit moderater Freizeitaktivität</option>
+                            <option value="1.8">körperlich anstrengende berufliche Arbeit oder sehr aktive Freizeittätigkeit</option>
+                        </select>
+                    </td>
+                    <td class="fehler" th:if="${#fields.hasErrors('pal')}" th:errors="*{pal}">Error</td>
+                </tr>
+                <tr>
+                    <td>Größe (cm):</td>
+                    <td><input type="text" th:field="*{height}" /></td>
+                    <td class="fehler" th:if="${#fields.hasErrors('height')}" th:errors="*{height}">Error</td>
+                </tr>
+                <tr>
+                    <td>Gewicht (kg):</td>
+                    <td><input type="text" th:field="*{weight}" /></td>
+                    <td class="fehler" th:if="${#fields.hasErrors('weight')}" th:errors="*{weight}">Error</td>
+                </tr>
+                <tr>
+                    <td>Phytatzufuhr:</td>
+                    <td>
+                        <select id="phytatzufuhr" name="phytatzufuhr" th:field="*{phytatzufuhr}" style="width: 200px">
+                            <option value="-1">geringer Verzehr von Vollkornprodukten sowie Hülsenfrüchten und Proteinquellen sind vorrangig tierischer Herkunft</option>
+                            <option value="0">Proteinquellen sind tierischer Herkunft sowie Vollkornprodukte und Hülsenfrüchte oder vegetarische bzw. vegane Ernährung mit vorrangig hoch ausgemahlenen, gekeimten oder fermentierten Getreideprodukten</option>
+                            <option value="1">hoher Verzehr von Vollkornprodukten und Hülsenfrüchten und Proteinquellen sind vorrangig oder ausschließlich pflanzlicher Herkunft</option>
+                        </select>
+                    </td>
+                    <td class="fehler" th:if="${#fields.hasErrors('phytatzufuhr')}" th:errors="*{phytatzufuhr}">Age Error</td>
+                </tr>
+                <tr>
+                    <td>Schwanger:</td>
+                    <td><input type="checkbox" th:field="*{pregnant}" /></td>
+                    <td class="fehler" th:if="${#fields.hasErrors('pregnant')}" th:errors="*{pregnant}">Error</td>
+                </tr>
+                <tr>
+                    <td>Stillend:</td>
+                    <td><input type="checkbox" th:field="*{breastfeeding}" /></td>
+                    <td class="fehler" th:if="${#fields.hasErrors('breastfeeding')}" th:errors="*{breastfeeding}">Error</td>
+                </tr>
+                <tr>
+                    <td><button type="submit">Registrieren</button></td>
+                </tr>
+            </table>
+        </form>
+        <p><a href="/anmeldung">Schon registriert? Hier anmelden</a></p>
+    </body>
+</html>

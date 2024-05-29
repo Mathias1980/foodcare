@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <title>header</title>
+  </head>
+  <body>
+    <div th:fragment="header" class="header">
+        <nav class="topnav">
+            <ul class="topnav-links">
+                <li><a id="home" class="active" href="/home">Home</a></li>
+                <li><a id="bliste" href="/bls/liste">BLS Liste</a></li>
+                <li><a id="bsuche" href="/bls/suche">BLS Suche</a></li>
+                <li><a id="rezepte" href="/bls/rezepte">Rezepte</a></li>
+            </ul>
+            <p class="topnav-text" th:text="${user.username}"></p>
+        </nav>
+    </div>
+  </body>
+</html>
+ 

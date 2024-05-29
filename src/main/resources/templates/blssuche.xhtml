@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" >
+    <head>
+        <title>Foodcae</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <link th:href="@{/css/styles.css}" rel="stylesheet" />
+        <link th:href="@{/css/blssuche.css}" rel="stylesheet" />
+        
+        <script src="https://code.highcharts.com/highcharts.js" defer="defer"></script>
+        <script src="/js/mllib.js" defer="defer"></script>
+        <script src="/js/foodcare.js" defer="defer"></script>
+        <script src="/js/highchart.js" defer="defer"></script>
+        
+        <script th:inline="javascript">
+            
+            /*<![CDATA[*/
+                const data = {
+                    blsReduced: /*[[${blsReduced}]]*/ 'default',
+                    colors: /*[[${colors}]]*/ 'default',
+                    avgG: /*[[${avgG}]]*/ 'default',
+                    avgUG: {},
+                    avgHG: {},
+                    blsdto: [],
+                    getColor: function(z) {
+                      let key = Object.keys(this.colors).find(k => z.includes(k));
+                      return key ? this.colors[key] : null;
+                    },
+                    suche(term){
+                        return this.blsReduced.filter(e => e.st.toLowerCase().includes(term.toLowerCase()));
+                    }
+                }
+            /*]]>*/
+            
+        'use strict';
+
+        document.addEventListener("DOMContentLoaded", evt => {
+
+            const eingabe = document.querySelector('#eingabe');
+            const ausgabe = document.querySelector('#tb');
+            const relation = document.querySelector('#relation');
+            
+            const chart = erstelleChart('container', basisOptionen);
+            
+            const loadBLS = (evt) => {
+                
+                let sbls = evt.target.id;
+                
+                Promise.all([
+                    fetch('/bls/avgHG/' + sbls.substring(0,1)),
+                    fetch('/bls/avgUG/' + sbls.substring(0,2)),
+                    fetch('/bls/dto/' + sbls)
+                  ]).then(responses => {
+                    return Promise.all(responses.map(res => res.json()));
+                  }).then(res => {
+                        data.avgHG = res[0]; 
+                        data.avgUG = res[1]; 
+                        data.blsdto = res[2];
+                        chart.setTitle({text: '100g ' + evt.target.textContent});
+                        drawChart(relation.querySelector('input[type="radio"]:checked').value);
+                  }).catch(error => {
+                    console.error('Ein Fehler ist aufgetreten:', error);
+                  });
+            }
+            
+            const drawChart = (rel) => {
+                if(rel === 'rel1'){
+                    let chartdata = data.blsdto.filter((obj) => obj.info === 'user');                           
+                    chart.setSize(undefined, chartdata.length * 23);
+                    chart.series[0].setData(addColors(chartdata));
+                }else{
+                    let chartdata = [...data.blsdto].map(obj => ({
+                        ...obj,
+                        y: parseFloat(calculatePercentage(obj.abs, data[rel][obj.kurz.toLowerCase()]).toFixed(2))
+                      }));
+                    chart.setSize(undefined, chartdata.length * 23);
+                    chart.series[0].setData(addColors(chartdata));
+                }
+            }
+            
+            const handleRelation = evt => {
+                drawChart(evt.target.closest('fieldset').querySelector('input[type="radio"]:checked').value);
+            }
+
+            const handleInput = evt => {
+                
+                let el = evt.target.value;
+                
+                if(el.length > 3) {
+                    ausgabe.replaceChildren();
+                    data.suche(el).forEach( (item) => {
+                        let tr = createDOM('', 'tr', ausgabe);
+                        let td = createDOM(item.st, 'td', tr, 'pointer', item.sbls);
+                        td.addEventListener('click', loadBLS);
+                    });
+                }
+            }           
+            
+            eingabe.addEventListener('keyup', handleInput);
+            relation.addEventListener('change', handleRelation);
+
+        });
+        </script> 
+    </head>
+    <body>
+        <header th:replace="fragments/header.xhtml :: header">...</header>        
+
+        <section>
+            
+            <div class="liste">
+              <input type="text" id="eingabe" name="eingabe"/>
+              <table>
+                <tbody id="tb">
+
+                </tbody>
+              </table>
+            </div>
+            
+            <div class="chart">
+              <fieldset id="relation">
+                Relation:
+                <label for="rel1">DGE</label>
+                <input type="radio" id="rel1" name="blswahl" value="rel1" checked="checked"/>
+                <label for="rel2">Untergruppe</label>
+                <input type="radio" id="rel2" name="blswahl" value="avgUG" />
+                <label for="rel3">Hauptgruppe</label>
+                <input type="radio" id="rel3" name="blswahl" value="avgHG" />
+                <label for="rel4">Gesamt</label>
+                <input type="radio" id="rel4" name="blswahl" value="avgG" />
+              </fieldset>
+              <div id="container">
+
+              </div>
+            </div>
+        </section>
+
+    </body>
+</html>
