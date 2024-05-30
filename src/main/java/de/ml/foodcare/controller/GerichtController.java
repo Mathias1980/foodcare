@@ -41,7 +41,6 @@ public class GerichtController {
     
     @GetMapping                          
     public Stream<Gericht> getGerichte() {
-        // curl localhost:8080/gerichte
         return gerichtservice.getGerichte().stream();
     }
     
@@ -54,7 +53,6 @@ public class GerichtController {
     public ResponseEntity<Gericht> getGericht(
         @PathVariable int id
     ) {
-        // curl localhost:8080/gerichte/1
         return ResponseEntity.of(gerichtservice.getGericht(id));
     }
     
@@ -90,6 +88,12 @@ public class GerichtController {
         if (oGericht.isEmpty()) {
             return new ResponseEntity<>("Gericht nicht vorhanden ", HttpStatus.NOT_FOUND);
         }
+        if(gDto.getTitel().isBlank() || gDto.getKategorie().isBlank() || gDto.getAnleitung().isBlank() || gDto.getUsername().isBlank()){
+            return new ResponseEntity<>("unvollständig ", HttpStatus.BAD_REQUEST);
+        }
+        if(gDto.getZutaten().isEmpty()){
+            return new ResponseEntity<>("fehlende Zutaten ", HttpStatus.BAD_REQUEST);
+        }
         StringBuilder sb = new StringBuilder();
         String SEPARATOR = "";
         for(ZutatDto dto: gDto.getZutaten()){
@@ -100,7 +104,7 @@ public class GerichtController {
                 gDto.getZutaten().remove(dto);
             }
         }
-        GerichtDto res = gerichtservice.gerichtToDto(gerichtservice.updateGericht(oGericht.get(), gDto));
+        GerichtDto res = gerichtservice.gerichtToDto(gerichtservice.updateGericht(oGericht.get(), gDto.getTitel().trim(), gDto.getKategorie().trim(), gDto.getAnleitung().trim(), gDto.getUsername().trim(), gDto.getZutaten(), gDto.getHashtags()));
         res.setMessage(sb.toString());
         return ResponseEntity.ok(res);
     }

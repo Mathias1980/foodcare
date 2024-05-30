@@ -2,6 +2,7 @@ package de.ml.foodcare.model.gericht;
 
 import de.ml.foodcare.data.HashtagRepository;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 /**
@@ -17,8 +18,8 @@ public class HashtagService {
         this.hrep = hrep;
     }
     
-    public Hashtag findById(long id){
-        return this.hrep.findById(id).get();
+    public Optional<Hashtag> findById(long id){
+        return this.hrep.findById(id);
     }
     
     public List<Hashtag> findAll(){

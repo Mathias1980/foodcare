@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -38,10 +39,10 @@ public class GerichtService {
     }
     
     public List<Gericht> getGerichte() {
-        return Collections.unmodifiableList(grep.findAll());      // Kapselung bleibt erhalten - List is backed
+        return Collections.unmodifiableList(grep.findAll());      // Kapselung bleibt erhalten
     }
     
-    public List<Gericht> getGerichteByUser(String username){
+    public List<Gericht> getGerichteByUser(@NonNull String username){
         User user = uservice.findUserByUsername(username);
         return grep.findGerichtByUser(user);
     }
@@ -56,54 +57,56 @@ public class GerichtService {
     }
     
     @Transactional
-    public long addGericht(String titel, String kategorie, String anleitung, String username, List<ZutatDto> zutaten, List<Hashtag> hashtags) {
+    public long addGericht(@NonNull String titel, @NonNull String kategorie, @NonNull String anleitung, @NonNull String username, @NonNull List<ZutatDto> zutaten, @NonNull List<Hashtag> hashtags) {
         User user = uservice.findUserByUsername(username);
-        long gid = addGericht(new Gericht(titel, kategorie, anleitung, user));
+        Gericht g = grep.save(new Gericht(titel, kategorie, anleitung, user));
         hashtags.forEach(e -> { 
-            addHashtag(gid, e.getId());
+            addHashtag(g, e.getId());
         });
         zutaten.forEach(e -> {
-            addZutat(gid, e.getSbls(), e.getMenge());
+            addZutat(g, e.getSbls(), e.getMenge());
         });
-        return gid;
+        return g.getId();
     }
     
     @Transactional
-    public Gericht updateGericht(Gericht g, GerichtDto dto) {
-        User user = uservice.findUserByUsername(dto.getUsername());
-        g.setTitel(dto.getTitel().trim());
-        g.setKategorie(dto.getKategorie().trim());
-        g.setAnleitung(dto.getAnleitung().trim());
+    public Gericht updateGericht(Gericht g, @NonNull String titel, @NonNull String kategorie, @NonNull String anleitung, @NonNull String username, @NonNull List<ZutatDto> zutaten, @NonNull List<Hashtag> hashtags) {
+        User user = uservice.findUserByUsername(username);
+        g.setTitel(titel);
+        g.setKategorie(kategorie);
+        g.setAnleitung(anleitung);
         g.setUser(user);
         g.setModified(LocalDateTime.now());
-        g.setHashtags(dto.getHashtags());
+        g.setHashtags(hashtags);
+        g.getHashtags().clear();
+        for (Hashtag h : hashtags) {
+            addHashtag(g, h.getId());
+        }
         g.getZutaten().clear();
-        for (ZutatDto zutatDTO : dto.getZutaten()) {
-            g.getZutaten().add(new Zutat(g, bservice.blsBySbls(zutatDTO.getSbls()).get(), zutatDTO.getMenge()));
+        for (ZutatDto zutatDTO : zutaten) {
+            addZutat(g, zutatDTO.getSbls(), zutatDTO.getMenge());
         }
         return grep.save(g);
     }
     
+    public void addHashtag(Gericht g, long id){
+        Optional<Hashtag> h = hservice.findById(id);
+        if(h.isPresent()){
+            g.getHashtags().add(h.get());
+            grep.save(g);
+        }       
+    }
+    
+    public void addZutat(Gericht g, @NonNull String sbls, double menge) {
+        Optional<BLS> bls = bservice.blsBySbls(sbls);
+        if (bls.isPresent()) {
+            g.getZutaten().add(new Zutat(g, bls.get(), menge));
+            grep.save(g); 
+        }
+    }
+    
     public void removeGericht(int id) {
         grep.delete(getGericht(id).orElse(null));
-    }
-    
-    public void addHashtag(long gid, long id){
-        Optional<Gericht> gericht = getGericht(gid);
-        if(gericht.isPresent()){
-            Hashtag h = hservice.findById(id);
-            gericht.get().getHashtags().add(h);
-            grep.save(gericht.get());
-        }
-    }
-    
-    public void addZutat(long id, String sbls, double menge) {
-        Optional<Gericht> gericht = getGericht(id);
-        Optional<BLS> bls = bservice.blsBySbls(sbls);
-        if (gericht.isPresent() && bls.isPresent()) {
-            gericht.get().getZutaten().add(new Zutat(gericht.get(), bls.get(), menge));
-            grep.save(gericht.get()); 
-        }
     }
     
     public boolean existsGerichtByTitelKategorie(String titel, String kategorie){

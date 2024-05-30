@@ -24,6 +24,7 @@ public class GerichtDto {
 
     public GerichtDto() {
         this.zutaten = new ArrayList<>();
+        this.hashtags = new ArrayList<>();
     }
     
     public GerichtDto(long id, String titel, String kategorie, String anleitung, String username) {
@@ -36,14 +37,6 @@ public class GerichtDto {
         this.id = id;
         this.suche = titel + " : " + kategorie;
         this.message = " ";
-    }
-
-    public GerichtDto(String titel, String kategorie, String anleitung, List<ZutatDto> zutaten, String username) {
-        this.titel = titel;
-        this.kategorie = kategorie;
-        this.anleitung = anleitung;
-        this.zutaten = zutaten;
-        this.username = username;
     }
 
     public long getId() {
