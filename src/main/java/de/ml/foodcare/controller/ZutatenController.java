@@ -1,7 +1,7 @@
 package de.ml.foodcare.controller;
 
 import de.ml.foodcare.model.BLSReduced;
-import de.ml.foodcare.model.gericht.ZutatService;
+import de.ml.foodcare.service.ZutatService;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

@@ -1,9 +1,8 @@
-package de.ml.foodcare.model.gericht;
+package de.ml.foodcare.service;
 
 import de.ml.foodcare.auth.UserService;
 import de.ml.foodcare.data.ZutatRepository;
 import de.ml.foodcare.model.BLSReduced;
-import de.ml.foodcare.model.BLSService;
 import java.util.List;
 import org.springframework.stereotype.Service;
 

@@ -1,7 +1,7 @@
 package de.ml.foodcare.controller;
 
 import de.ml.foodcare.model.gericht.Hashtag;
-import de.ml.foodcare.model.gericht.HashtagService;
+import de.ml.foodcare.service.HashtagService;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

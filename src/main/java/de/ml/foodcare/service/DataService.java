@@ -1,13 +1,14 @@
-package de.ml.foodcare.data;
+package de.ml.foodcare.service;
 
 import de.ml.foodcare.auth.User;
 import de.ml.foodcare.auth.UserService;
+import de.ml.foodcare.data.DateiaufbauRepository;
 import de.ml.foodcare.model.BLS;
-import de.ml.foodcare.model.BLSService;
-import de.ml.foodcare.model.BLS_Dto;
+import de.ml.foodcare.service.BLSService;
+import de.ml.foodcare.model.dto.BLS_Dto;
 import de.ml.foodcare.model.Dateiaufbau;
 import de.ml.foodcare.model.dge.Ballaststoffe;
-import de.ml.foodcare.model.dge.DGEService;
+import de.ml.foodcare.service.DGEService;
 import de.ml.foodcare.model.dge.Energie;
 import de.ml.foodcare.model.dge.FettEF;
 import de.ml.foodcare.model.dge.Mengenelement;

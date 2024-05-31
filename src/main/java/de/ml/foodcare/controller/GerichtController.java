@@ -1,10 +1,10 @@
 package de.ml.foodcare.controller;
 
-import de.ml.foodcare.model.BLSService;
+import de.ml.foodcare.service.BLSService;
 import de.ml.foodcare.model.gericht.Gericht;
-import de.ml.foodcare.model.gericht.GerichtDto;
-import de.ml.foodcare.model.gericht.GerichtService;
-import de.ml.foodcare.model.gericht.ZutatDto;
+import de.ml.foodcare.model.dto.GerichtDto;
+import de.ml.foodcare.service.GerichtService;
+import de.ml.foodcare.model.dto.ZutatDto;
 import java.net.URI;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -68,7 +68,7 @@ public class GerichtController {
         }else if(gdto.getZutaten().isEmpty()){
             return new ResponseEntity<>("fehlende Zutaten ", HttpStatus.BAD_REQUEST);
         }else{
-            long id = gerichtservice.addGericht(gdto.getTitel().trim(), gdto.getKategorie().trim(), gdto.getAnleitung().trim(), gdto.getUsername(), gdto.getZutaten(), gdto.getHashtags() );
+            long id = gerichtservice.create(gdto);
             return ResponseEntity
                 .created(URI.create("/gerichte/" + id))
                 .body(gerichtservice.gerichtToDto(gerichtservice.getGericht(id).get()));
@@ -104,7 +104,7 @@ public class GerichtController {
                 gDto.getZutaten().remove(dto);
             }
         }
-        GerichtDto res = gerichtservice.gerichtToDto(gerichtservice.updateGericht(oGericht.get(), gDto.getTitel().trim(), gDto.getKategorie().trim(), gDto.getAnleitung().trim(), gDto.getUsername().trim(), gDto.getZutaten(), gDto.getHashtags()));
+        GerichtDto res = gerichtservice.gerichtToDto(gerichtservice.updateGericht(oGericht.get(), gDto));
         res.setMessage(sb.toString());
         return ResponseEntity.ok(res);
     }

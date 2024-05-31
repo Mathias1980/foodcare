@@ -1,10 +1,15 @@
-package de.ml.foodcare.model.gericht;
+package de.ml.foodcare.service;
 
+import de.ml.foodcare.model.dto.ZutatDto;
+import de.ml.foodcare.model.dto.GerichtDto;
 import de.ml.foodcare.auth.User;
 import de.ml.foodcare.auth.UserService;
 import de.ml.foodcare.data.GerichtRepository;
 import de.ml.foodcare.model.BLS;
-import de.ml.foodcare.model.BLSService;
+import de.ml.foodcare.model.dto.HashtagDto;
+import de.ml.foodcare.model.gericht.Gericht;
+import de.ml.foodcare.model.gericht.Hashtag;
+import de.ml.foodcare.model.gericht.Zutat;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -57,33 +62,32 @@ public class GerichtService {
     }
     
     @Transactional
-    public long addGericht(@NonNull String titel, @NonNull String kategorie, @NonNull String anleitung, @NonNull String username, @NonNull List<ZutatDto> zutaten, @NonNull List<Hashtag> hashtags) {
-        User user = uservice.findUserByUsername(username);
-        Gericht g = grep.save(new Gericht(titel, kategorie, anleitung, user));
-        hashtags.forEach(e -> { 
+    public long create(GerichtDto dto) {
+        User user = uservice.findUserByUsername(dto.getUsername());
+        Gericht g = grep.save(new Gericht(dto.getTitel(), dto.getKategorie(), dto.getAnleitung(), user));
+        dto.getHashtags().forEach(e -> { 
             addHashtag(g, e.getId());
         });
-        zutaten.forEach(e -> {
+        dto.getZutaten().forEach(e -> {
             addZutat(g, e.getSbls(), e.getMenge());
         });
         return g.getId();
     }
     
     @Transactional
-    public Gericht updateGericht(Gericht g, @NonNull String titel, @NonNull String kategorie, @NonNull String anleitung, @NonNull String username, @NonNull List<ZutatDto> zutaten, @NonNull List<Hashtag> hashtags) {
-        User user = uservice.findUserByUsername(username);
-        g.setTitel(titel);
-        g.setKategorie(kategorie);
-        g.setAnleitung(anleitung);
+    public Gericht update(Gericht g, GerichtDto dto) {
+        User user = uservice.findUserByUsername(dto.getUsername());
+        g.setTitel(dto.getTitel());
+        g.setKategorie(dto.getKategorie());
+        g.setAnleitung(dto.getAnleitung());
         g.setUser(user);
         g.setModified(LocalDateTime.now());
-        g.setHashtags(hashtags);
         g.getHashtags().clear();
-        for (Hashtag h : hashtags) {
-            addHashtag(g, h.getId());
+        for (HashtagDto hDto : dto.getHashtags()) {
+            addHashtag(g, hDto.getId());
         }
         g.getZutaten().clear();
-        for (ZutatDto zutatDTO : zutaten) {
+        for (ZutatDto zutatDTO : dto.getZutaten()) {
             addZutat(g, zutatDTO.getSbls(), zutatDTO.getMenge());
         }
         return grep.save(g);
@@ -97,7 +101,7 @@ public class GerichtService {
         }       
     }
     
-    public void addZutat(Gericht g, @NonNull String sbls, double menge) {
+    public void addZutat(Gericht g, String sbls, double menge) {
         Optional<BLS> bls = bservice.blsBySbls(sbls);
         if (bls.isPresent()) {
             g.getZutaten().add(new Zutat(g, bls.get(), menge));
@@ -116,7 +120,7 @@ public class GerichtService {
     public static GerichtDto gerichtToDto(Gericht g){
         GerichtDto gdto = new GerichtDto(g.getId(), g.getTitel(), g.getKategorie(), g.getAnleitung(), g.getUser().getUsername());
         g.getZutaten().forEach((el) -> gdto.getZutaten().add(new ZutatDto(el.getBls().getSBLS(), el.getMenge())));
-        gdto.setHashtags(g.getHashtags());
+        g.getHashtags().forEach((el) -> gdto.getHashtags().add(new HashtagDto(el.getId(), el.getBez())));
         return gdto;
     }
     

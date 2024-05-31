@@ -1,4 +1,4 @@
-package de.ml.foodcare.model;
+package de.ml.foodcare.model.dto;
 
 /**
  *

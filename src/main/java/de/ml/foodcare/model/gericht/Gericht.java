@@ -1,6 +1,7 @@
 package de.ml.foodcare.model.gericht;
 
 import de.ml.foodcare.auth.User;
+import de.ml.foodcare.model.dto.GerichtDto;
 import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -14,48 +15,80 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import org.hibernate.validator.constraints.UniqueElements;
  
 /**
  *
  * @author mathi
  */
 @Entity
+@Getter
+@Setter
+@ToString
 public class Gericht {
     
     @Id
     @Column(name = "gericht_id")
     @Basic(optional = false)
     @GeneratedValue(strategy = GenerationType.AUTO)
+    @PositiveOrZero
     private long id;
-    @NotNull(message = "Name cannot be null")
-    @Size(min=3 , max=30)
+    
+    @NotNull(message = "Titel darf nicht null sein.")
+    @NotBlank(message = "Titel darf nicht leer sein")
+    @Size(min=3 , max=60, message = "Titel muss zwischen 3 und 60 Zeichen lang sein.")
     private String titel;
+    
+    @NotNull(message = "Kategorie darf nicht null sein.")
+    @NotBlank(message = "Kategorie darf nicht leer sein")
+    @Size(min=3 , max=60, message = "Kategorie muss zwischen 3 und 60 Zeichen lang sein.")
     private String kategorie;
+    
+    @NotNull(message = "Kategorie darf nicht null sein.")
+    @NotBlank(message = "Kategorie darf nicht leer sein")
     private String anleitung;
     
+    @NotEmpty(message = "Gericht muss Zutaten haben.")
+    @UniqueElements
     @OneToMany(mappedBy = "gericht", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Zutat> zutaten;
+    private List<@Valid Zutat> zutaten;
     
     @ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     @JoinTable(name = "gericht_hashtags", joinColumns = @JoinColumn(name = "gericht_id"), inverseJoinColumns = @JoinColumn(name = "hashtag_id"))
-    private List<Hashtag> hashtags;
+    @NotNull(message = "Hashtags darf nicht null sein.")
+    @UniqueElements
+    private List<@Valid Hashtag> hashtags;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
+    @NotNull(message = "User darf nicht null sein.")
+    @Valid
     private User user;
     
+    @PastOrPresent(message = "created darf nicht in der Zukunft liegen")
     @Column(columnDefinition = "TIMESTAMP")
     private LocalDateTime created;
     
+    @PastOrPresent(message = "modified darf nicht in der Zukunft liegen")
     @Column(columnDefinition = "TIMESTAMP")
     private LocalDateTime modified;
 
     public Gericht() {
+        this.zutaten = new ArrayList<>();
+        this.hashtags = new ArrayList<>();
     }
 
     public Gericht(String titel, String kategorie, String anleitung, User user) {
@@ -68,82 +101,8 @@ public class Gericht {
         this.created = LocalDateTime.now();
         this.modified = LocalDateTime.now();
     }
-
-    public List<Hashtag> getHashtags() {
-        return hashtags;
-    }
-
-    public void setHashtags(List<Hashtag> hashtags) {
-        this.hashtags = hashtags;
-    }
-
-    public String getAnleitung() {
-        return anleitung;
-    }
-
-    public void setAnleitung(String anleitung) {
-        this.anleitung = anleitung;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
     
-    public long getId() {
-        return id;
+    public GerichtDto toDto(){
+        return new GerichtDto(id, titel, kategorie, anleitung, user.getUsername());
     }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public String getTitel() {
-        return titel;
-    }
-
-    public void setTitel(String titel) {
-        this.titel = titel;
-    }
-
-    public String getKategorie() {
-        return kategorie;
-    }
-
-    public void setKategorie(String kategorie) {
-        this.kategorie = kategorie;
-    }
-
-    public List<Zutat> getZutaten() {
-        return zutaten;
-    }
-
-    public void setZutaten(List<Zutat> zutaten) {
-        this.zutaten = zutaten;
-    }
-
-    public LocalDateTime getCreated() {
-        return created;
-    }
-
-    public void setCreated(LocalDateTime created) {
-        this.created = created;
-    }
-
-    public LocalDateTime getModified() {
-        return modified;
-    }
-
-    public void setModified(LocalDateTime modified) {
-        this.modified = modified;
-    }
-
-    @Override
-    public String toString() {
-        return "Gericht{" + "id=" + id + ", titel=" + titel + ", kategorie=" + kategorie + ", anleitung=" + anleitung + ", zutaten=" + zutaten + ", hashtags=" + hashtags + ", user=" + user + ", created=" + created + ", modified=" + modified + '}';
-    }
-    
 }

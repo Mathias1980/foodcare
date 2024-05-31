@@ -1,6 +1,15 @@
-package de.ml.foodcare.model.dge;
+package de.ml.foodcare.service;
 
 import de.ml.foodcare.auth.User;
+import de.ml.foodcare.model.dge.Ballaststoffe;
+import de.ml.foodcare.model.dge.Energie;
+import de.ml.foodcare.model.dge.EnergieReferenz;
+import de.ml.foodcare.model.dge.FettEF;
+import de.ml.foodcare.model.dge.Mengenelement;
+import de.ml.foodcare.model.dge.Protein;
+import de.ml.foodcare.model.dge.Spurenelement;
+import de.ml.foodcare.model.dge.Vitamin;
+import de.ml.foodcare.model.dge.Wasser;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;

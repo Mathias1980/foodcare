@@ -1,6 +1,7 @@
-package de.ml.foodcare.model.gericht;
+package de.ml.foodcare.service;
 
 import de.ml.foodcare.data.HashtagRepository;
+import de.ml.foodcare.model.gericht.Hashtag;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;

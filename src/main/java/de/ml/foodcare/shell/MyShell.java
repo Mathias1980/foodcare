@@ -6,7 +6,7 @@ import de.ml.foodcare.data.DateiaufbauRepository;
 import de.ml.foodcare.model.BLS;
 import de.ml.foodcare.model.Dateiaufbau;
 import de.ml.foodcare.model.SBLS.Hauptgruppe;
-import de.ml.foodcare.model.SBLS.SBLS_Service;
+import de.ml.foodcare.service.SBLS_Service;
 import de.ml.foodcare.model.SBLS.Untergruppe;
 import java.io.IOException;
 import java.lang.reflect.Field;

@@ -1,8 +1,12 @@
-package de.ml.foodcare.model;
+package de.ml.foodcare.service;
 
 import de.ml.foodcare.Util;
 import de.ml.foodcare.data.BLSRepository;
 import de.ml.foodcare.data.DateiaufbauRepository;
+import de.ml.foodcare.model.BLS;
+import de.ml.foodcare.model.BLSReduced;
+import de.ml.foodcare.model.Dateiaufbau;
+import de.ml.foodcare.model.DateiaufbauZuordnung;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

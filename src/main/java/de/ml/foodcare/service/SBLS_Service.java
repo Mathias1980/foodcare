@@ -1,5 +1,7 @@
-package de.ml.foodcare.model.SBLS;
+package de.ml.foodcare.service;
 
+import de.ml.foodcare.model.SBLS.Hauptgruppe;
+import de.ml.foodcare.model.SBLS.Untergruppe;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
