@@ -1,12 +1,17 @@
 package de.ml.foodcare.auth;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import de.ml.foodcare.model.gericht.Gericht;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
@@ -15,7 +20,15 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 import org.hibernate.validator.constraints.Range;
 
 /**
@@ -24,6 +37,11 @@ import org.hibernate.validator.constraints.Range;
  */
 @Entity
 @Table(name = "users")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString
 public class User {
     
     @Id
@@ -36,7 +54,6 @@ public class User {
     private String username;
     @Size(min=10)
     private String password;
-    private String role;
     private boolean enabled;
     @Email(message = "Bitte geben Sie eine gültige E-Mail-Adresse ein.")
     private String email;
@@ -57,144 +74,13 @@ public class User {
     private boolean breastfeeding;
     
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    private List<Gericht> gerichte;
-
-    public User() {
-    }
-
-    public User(Long id, String username, String password, String role, boolean enabled, String email, int age, String gender, double pal, double height, double weight, int phytatzufuhr, boolean pregnant, boolean breastfeeding) {
-        this.id = id;
-        this.username = username;
-        this.password = password;
-        this.role = role;
-        this.enabled = enabled;
-        this.age = age;
-        this.gender = gender;
-        this.pal = pal;
-        this.height = height;
-        this.weight = weight;
-        this.phytatzufuhr = phytatzufuhr;
-        this.pregnant = pregnant;
-        this.breastfeeding = breastfeeding;
-        this.email = email;
-        this.password = password;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
-
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    public int getAge() {
-        return age;
-    }
-
-    public void setAge(int age) {
-        this.age = age;
-    }
-
-    public String getGender() {
-        return gender;
-    }
-
-    public void setGender(String gender) {
-        this.gender = gender;
-    }
-
-    public double getPal() {
-        return pal;
-    }
-
-    public void setPal(double pal) {
-        this.pal = pal;
-    }
-
-    public double getHeight() {
-        return height;
-    }
-
-    public void setHeight(double height) {
-        this.height = height;
-    }
-
-    public double getWeight() {
-        return weight;
-    }
-
-    public void setWeight(double weight) {
-        this.weight = weight;
-    }
-
-    public int getPhytatzufuhr() {
-        return phytatzufuhr;
-    }
-
-    public void setPhytatzufuhr(int phytatzufuhr) {
-        this.phytatzufuhr = phytatzufuhr;
-    }
-
-    public boolean isPregnant() {
-        return pregnant;
-    }
-
-    public void setPregnant(boolean pregnant) {
-        this.pregnant = pregnant;
-    }
-
-    public boolean isBreastfeeding() {
-        return breastfeeding;
-    }
-
-    public void setBreastfeeding(boolean breastfeeding) {
-        this.breastfeeding = breastfeeding;
-    }
-
-    @Override
-    public String toString() {
-        return "User{" + "id=" + id + ", username=" + username + ", password=" + password + ", role=" + role + ", enabled=" + enabled + ", email=" + email + ", age=" + age + ", gender=" + gender + ", pal=" + pal + ", height=" + height + ", weight=" + weight + ", phytatzufuhr=" + phytatzufuhr + ", pregnant=" + pregnant + ", breastfeeding=" + breastfeeding + '}';
-    }
+    @JsonIgnore
+    private List<Gericht> gerichte = new ArrayList<>();
     
+    @ManyToMany(fetch = FetchType.EAGER, cascade = { CascadeType.PERSIST, CascadeType.MERGE })
+    @JoinTable(name = "user_roles",
+               joinColumns = @JoinColumn(name = "user_id"),
+               inverseJoinColumns = @JoinColumn(name = "role_id"))
+    private Set<Role> roles = new HashSet<>();
+
 }

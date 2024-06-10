@@ -37,9 +37,16 @@ public class AuthController {
     
     @GetMapping("/home")
     public String showHomePage(@AuthenticationPrincipal UserDetails userDetails, Model model) {
-        User user = userservice.findUserByUsername(userDetails.getUsername());
+        User user = userservice.findByUsername(userDetails.getUsername()).get();
         model.addAttribute("user", user);
         return "home.xhtml";
+    }
+    
+    @GetMapping("/admin")
+    public String showAdminPage(@AuthenticationPrincipal UserDetails userDetails, Model model) {
+        User user = userservice.findByUsername(userDetails.getUsername()).get();
+        model.addAttribute("user", user);
+        return "admin.xhtml";
     }
     
     @GetMapping("/anmeldung")

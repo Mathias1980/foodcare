@@ -22,42 +22,26 @@ public class SecurityConfig {
     @Bean
     public static PasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder();
-    }
-    
-//    @Bean
-//    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-//        http
-//            .authorizeHttpRequests((authorize) ->
-//                    authorize
-//                            .requestMatchers("/register", "/css/**").permitAll()
-//            ).formLogin(
-//                    form -> form
-//                            .loginPage("/anmeldung")
-//                            .loginProcessingUrl("/anmeldung")
-//                            .defaultSuccessUrl("/home")
-//                            .permitAll()
-//            ).logout(
-//                    logout -> logout
-//                            .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
-//                            .permitAll()
-//            ).httpBasic(Customizer.withDefaults());
-//        return http.build();
-//    }
+    }   
     
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf().disable()
             .authorizeHttpRequests(authorizeHttpRequests -> authorizeHttpRequests
-                .requestMatchers("/", "/register", "/anmeldung", "/css/**")
-                .permitAll()
-                .anyRequest()
-                .authenticated()
+                .requestMatchers("/", "/register", "/anmeldung", "/css/**").permitAll()
+                .requestMatchers("/admin/**").hasRole("ADMIN")
+                .anyRequest().authenticated()
             )
             .formLogin(
                 form -> form
                     .loginPage("/anmeldung")
                     .defaultSuccessUrl("/home")
                     .permitAll()
+            )
+            .logout(logout -> logout
+                .logoutUrl("/logout")
+                .logoutSuccessUrl("/anmeldung")
+                .permitAll()
             )
             .httpBasic(Customizer.withDefaults());
         return http.build();

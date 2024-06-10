@@ -5,6 +5,7 @@ import de.ml.foodcare.model.BLS;
 import de.ml.foodcare.model.dto.ZutatDto;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -37,7 +38,7 @@ public class Zutat {
     @NotNull
     private BLS bls; 
     
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "gericht_id")
     @JsonIgnore
     @NotNull

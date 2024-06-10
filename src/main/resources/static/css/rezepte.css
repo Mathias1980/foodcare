@@ -158,6 +158,7 @@ input[type="text"] {
     align-items: center; /* Zentriert den Button vertikal */
     justify-content: space-between;
     width: 95%;
+    font-weight: bold;
 }
 
 #zutaten li button{

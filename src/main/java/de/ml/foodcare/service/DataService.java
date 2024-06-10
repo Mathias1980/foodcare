@@ -4,11 +4,9 @@ import de.ml.foodcare.auth.User;
 import de.ml.foodcare.auth.UserService;
 import de.ml.foodcare.data.DateiaufbauRepository;
 import de.ml.foodcare.model.BLS;
-import de.ml.foodcare.service.BLSService;
 import de.ml.foodcare.model.dto.BLS_Dto;
 import de.ml.foodcare.model.Dateiaufbau;
 import de.ml.foodcare.model.dge.Ballaststoffe;
-import de.ml.foodcare.service.DGEService;
 import de.ml.foodcare.model.dge.Energie;
 import de.ml.foodcare.model.dge.FettEF;
 import de.ml.foodcare.model.dge.Mengenelement;
@@ -67,7 +65,7 @@ public class DataService {
         List<BLS_Dto> res = new ArrayList();
         
         Authentication authuser = SecurityContextHolder.getContext().getAuthentication();
-        User user = userservice.findUserByUsername(authuser.getName());
+        User user = userservice.findByUsername(authuser.getName()).get();
         
         Map<String, Object> userDGE = dge.findDGEByUser(user);
         BLS sblsBLS = bls.blsBySbls(sbls).get();

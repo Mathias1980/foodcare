@@ -2,7 +2,8 @@ package de.ml.foodcare;
 
 import de.ml.foodcare.auth.User;
 import de.ml.foodcare.data.UserRepository;
-import java.util.Collections;
+import java.util.stream.Collectors;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -29,7 +30,9 @@ public class UserDetailServiceConfig implements UserDetailsService{
         return new org.springframework.security.core.userdetails.User(
                 username,
                 user.getPassword(),
-                Collections.emptyList()
+                user.getRoles().stream()
+                    .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
+                    .collect(Collectors.toList())
         );
     }
     

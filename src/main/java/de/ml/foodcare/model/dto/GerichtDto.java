@@ -41,8 +41,8 @@ public class GerichtDto {
     @Size(min=3 , max=60, message = "Kategorie muss zwischen 3 und 60 Zeichen lang sein.")
     private String kategorie;
     
-    @NotNull(message = "Kategorie darf nicht null sein.")
-    @NotBlank(message = "Kategorie darf nicht leer sein")
+    @NotNull(message = "Anleitung darf nicht null sein.")
+    @NotBlank(message = "Anleitung darf nicht leer sein")
     private String anleitung;
     
     @NotEmpty(message = "Gericht muss Zutaten haben.")

@@ -20,6 +20,6 @@ public interface GerichtRepository extends ListCrudRepository<Gericht, Long>{
     @Query("SELECT DISTINCT g.kategorie FROM Gericht as g")
     List<String> findDistinctKategorie();
     
-    List<Gericht> findGerichtByUser(User user);
+    List<Gericht> findByUser(User user);
     
 }

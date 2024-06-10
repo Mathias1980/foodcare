@@ -14,8 +14,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import java.util.List;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  *
@@ -23,10 +24,10 @@ import lombok.NoArgsConstructor;
  */
 
 @Entity
-@Data
-@Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @NoArgsConstructor
+@Getter
+@Setter
 public class Hashtag {
     
     @Id

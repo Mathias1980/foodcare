@@ -4,6 +4,7 @@ body {
 
 .fehler {
     color: red;
+    font-weight: bold;
 }
 
 table {

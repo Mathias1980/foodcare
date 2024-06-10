@@ -1,12 +1,15 @@
 package de.ml.foodcare.controller;
 
+import de.ml.foodcare.exceptions.ConflictException;
+import de.ml.foodcare.exceptions.ResourceNotFoundException;
 import de.ml.foodcare.service.BLSService;
 import de.ml.foodcare.model.gericht.Gericht;
 import de.ml.foodcare.model.dto.GerichtDto;
 import de.ml.foodcare.service.GerichtService;
 import de.ml.foodcare.model.dto.ZutatDto;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import java.net.URI;
-import java.util.Optional;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,15 +61,10 @@ public class GerichtController {
     
     @PostMapping                           
     public ResponseEntity<?> postGericht(
-        @RequestBody GerichtDto gdto
+        @Valid @RequestBody GerichtDto gdto
     ) {
-        log.info(gdto.toString());
         if(gerichtservice.existsGerichtByTitelKategorie(gdto.getTitel(), gdto.getKategorie())){
-            return new ResponseEntity<>("bereits vorhanden ", HttpStatus.CONFLICT);
-        }else if(gdto.getTitel().isBlank() || gdto.getKategorie().isBlank() || gdto.getUsername().isBlank()){
-            return new ResponseEntity<>("unvollständig ", HttpStatus.BAD_REQUEST);
-        }else if(gdto.getZutaten().isEmpty()){
-            return new ResponseEntity<>("fehlende Zutaten ", HttpStatus.BAD_REQUEST);
+            throw new ConflictException("Titel + Kategorie bereits vorhanden.");
         }else{
             long id = gerichtservice.create(gdto);
             return ResponseEntity
@@ -77,23 +75,14 @@ public class GerichtController {
     
     @PutMapping("/{id}")                    
     public ResponseEntity<?> putGericht(
-        @PathVariable int id,
-        @RequestBody GerichtDto gDto  
+        @Positive @PathVariable int id,
+        @Valid @RequestBody GerichtDto gDto  
     ) {
-        log.info(gDto.toString());
         if (id != gDto.getId()) {
-            return new ResponseEntity<>("Gericht does't match id ", HttpStatus.CONFLICT);
+            throw new ConflictException("ID passt nicht zu Gericht.");
         }
-        Optional<Gericht> oGericht = gerichtservice.getGericht(id);
-        if (oGericht.isEmpty()) {
-            return new ResponseEntity<>("Gericht nicht vorhanden ", HttpStatus.NOT_FOUND);
-        }
-        if(gDto.getTitel().isBlank() || gDto.getKategorie().isBlank() || gDto.getAnleitung().isBlank() || gDto.getUsername().isBlank()){
-            return new ResponseEntity<>("unvollständig ", HttpStatus.BAD_REQUEST);
-        }
-        if(gDto.getZutaten().isEmpty()){
-            return new ResponseEntity<>("fehlende Zutaten ", HttpStatus.BAD_REQUEST);
-        }
+        Gericht gericht = gerichtservice.getGericht(id).orElseThrow(() -> new ResourceNotFoundException("Gericht nicht vorhanden"));
+
         StringBuilder sb = new StringBuilder();
         String SEPARATOR = "";
         for(ZutatDto dto: gDto.getZutaten()){
@@ -104,7 +93,7 @@ public class GerichtController {
                 gDto.getZutaten().remove(dto);
             }
         }
-        GerichtDto res = gerichtservice.gerichtToDto(gerichtservice.updateGericht(oGericht.get(), gDto));
+        GerichtDto res = gerichtservice.gerichtToDto(gerichtservice.update(gericht, gDto));
         res.setMessage(sb.toString());
         return ResponseEntity.ok(res);
     }
@@ -113,10 +102,7 @@ public class GerichtController {
     public ResponseEntity<?> deleteGericht(
         @PathVariable int id
     ) {
-        Optional<Gericht> og = gerichtservice.getGericht(id);
-        if (og.isEmpty()) {
-            return new ResponseEntity<>("Gericht does't exist", HttpStatus.NOT_FOUND);
-        }
+        gerichtservice.getGericht(id).orElseThrow(() -> new ResourceNotFoundException("Gericht nicht vorhanden"));
         gerichtservice.removeGericht(id);
         return new ResponseEntity<>(HttpStatus.OK);
     }

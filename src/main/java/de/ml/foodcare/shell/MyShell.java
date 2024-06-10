@@ -1,6 +1,6 @@
 package de.ml.foodcare.shell;
 
-import de.ml.foodcare.data.ReadData;
+import de.ml.foodcare.data.Import;
 import de.ml.foodcare.data.BLSRepository;
 import de.ml.foodcare.data.DateiaufbauRepository;
 import de.ml.foodcare.model.BLS;
@@ -14,8 +14,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 
@@ -28,10 +26,10 @@ public class MyShell {
     
     private BLSRepository bls;
     private DateiaufbauRepository dateiaufbau;
-    private ReadData readdata;
+    private Import readdata;
     private SBLS_Service sblsservice;
     
-    public MyShell(BLSRepository bls, DateiaufbauRepository dateiaufbau, ReadData readdata, SBLS_Service sblsservice){
+    public MyShell(BLSRepository bls, DateiaufbauRepository dateiaufbau, Import i, SBLS_Service sblsservice){
         this.bls = bls;
         this.dateiaufbau = dateiaufbau;
         this.readdata = readdata;

@@ -5,6 +5,7 @@ import de.ml.foodcare.model.dto.GerichtDto;
 import de.ml.foodcare.auth.User;
 import de.ml.foodcare.auth.UserService;
 import de.ml.foodcare.data.GerichtRepository;
+import de.ml.foodcare.exceptions.ResourceNotFoundException;
 import de.ml.foodcare.model.BLS;
 import de.ml.foodcare.model.dto.HashtagDto;
 import de.ml.foodcare.model.gericht.Gericht;
@@ -48,8 +49,8 @@ public class GerichtService {
     }
     
     public List<Gericht> getGerichteByUser(@NonNull String username){
-        User user = uservice.findUserByUsername(username);
-        return grep.findGerichtByUser(user);
+        User user = uservice.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("Benutzer nicht vorhanden"));
+        return grep.findByUser(user);
     }
     
     public Optional<Gericht> getGericht(long id) {
@@ -63,7 +64,7 @@ public class GerichtService {
     
     @Transactional
     public long create(GerichtDto dto) {
-        User user = uservice.findUserByUsername(dto.getUsername());
+        User user = uservice.findByUsername(dto.getUsername()).orElseThrow(() -> new ResourceNotFoundException("Benutzer nicht vorhanden"));
         Gericht g = grep.save(new Gericht(dto.getTitel(), dto.getKategorie(), dto.getAnleitung(), user));
         dto.getHashtags().forEach(e -> { 
             addHashtag(g, e.getId());
@@ -76,7 +77,7 @@ public class GerichtService {
     
     @Transactional
     public Gericht update(Gericht g, GerichtDto dto) {
-        User user = uservice.findUserByUsername(dto.getUsername());
+        User user = uservice.findByUsername(dto.getUsername()).orElseThrow(() -> new ResourceNotFoundException("Benutzer nicht vorhanden"));
         g.setTitel(dto.getTitel());
         g.setKategorie(dto.getKategorie());
         g.setAnleitung(dto.getAnleitung());
@@ -94,23 +95,19 @@ public class GerichtService {
     }
     
     public void addHashtag(Gericht g, long id){
-        Optional<Hashtag> h = hservice.findById(id);
-        if(h.isPresent()){
-            g.getHashtags().add(h.get());
-            grep.save(g);
-        }       
+        Hashtag h = hservice.findById(id).orElseThrow(() -> new ResourceNotFoundException("Hashtag nicht vorhanden"));
+        g.getHashtags().add(h);
+        grep.save(g);   
     }
     
     public void addZutat(Gericht g, String sbls, double menge) {
-        Optional<BLS> bls = bservice.blsBySbls(sbls);
-        if (bls.isPresent()) {
-            g.getZutaten().add(new Zutat(g, bls.get(), menge));
-            grep.save(g); 
-        }
+        BLS bls = bservice.blsBySbls(sbls).orElseThrow(() -> new ResourceNotFoundException("BLS nicht vorhanden"));
+        g.getZutaten().add(new Zutat(g, bls, menge));
+        grep.save(g); 
     }
     
     public void removeGericht(int id) {
-        grep.delete(getGericht(id).orElse(null));
+        grep.delete(getGericht(id).orElseThrow(() -> new ResourceNotFoundException("Gericht nicht vorhanden")));
     }
     
     public boolean existsGerichtByTitelKategorie(String titel, String kategorie){
@@ -137,6 +134,22 @@ public class GerichtService {
     
     public List<String> findDistinctKategorie(){
         return grep.findDistinctKategorie();
+    }
+    
+    @Transactional
+    public void deleteUserAndAssignAnonymous(String username) {
+        User user = uservice.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Benutzer nicht vorhanden"));
+
+        User anonymous = uservice.findByUsername("anonymous")
+                .orElseThrow(() -> new ResourceNotFoundException("Anonymous nicht vorhanden"));
+
+        List<Gericht> gerichte = grep.findByUser(user);
+        for (Gericht gericht : gerichte) {
+            gericht.setUser(anonymous);
+        }
+        grep.saveAll(gerichte);
+        uservice.delete(user);
     }
     
 }

@@ -23,16 +23,18 @@ import org.springframework.stereotype.Service;
  * @author mathi
  */
 @Service
-public class ReadData {
+public class Import {
     
     private static final String FILE_PATH_Dateiaufbau = "src/main/resources/BLS-Dateiaufbau.xlsx";
     private static final String FILE_PATH_BLS = "src/main/resources/BLS_302.xlsx";
-    private static final Logger log = LoggerFactory.getLogger(ReadData.class);
+    private static final Logger log = LoggerFactory.getLogger(Import.class);
     
     private DateiaufbauRepository dateiaufbau;
+    private BLSRepository bls;
     
-    public ReadData(DateiaufbauRepository dateiaufbau){
+    public Import(BLSRepository bls, DateiaufbauRepository dateiaufbau){
         this.dateiaufbau = dateiaufbau;
+        this.bls = bls;
     }
     
     public List<Dateiaufbau> readExcelDateiaufbau() throws IOException {
@@ -66,6 +68,12 @@ public class ReadData {
         return dataObjects;
     }
     
+    public void importDateiaufbau() throws IOException{
+        List<Dateiaufbau> list = readExcelDateiaufbau();
+        dateiaufbau.deleteAll();
+        dateiaufbau.saveAll(list);
+    }
+    
     public List<BLS> readExcelBLS() throws IOException, IllegalAccessException, InvocationTargetException {
         
         List<Dateiaufbau> dateiliste = dateiaufbau.findAll();
@@ -95,7 +103,6 @@ public class ReadData {
                     if (method.getName().startsWith("set")) {
                         for(Dateiaufbau datei : dateiliste){
                             if(method.getName().substring(3).equals(datei.getKurz()) && !method.getName().substring(3).equals("SBLS") && !method.getName().substring(3).equals("ST") && !method.getName().substring(3).equals("STE")){
-                                //log.info("feld: " + datei.getFeld() + " " + datei.getKurz());
                                 method.invoke(bls, (double) row.getCell(datei.getFeld() - 1).getNumericCellValue());
                             }
                         }                      
@@ -106,6 +113,12 @@ public class ReadData {
         }
         workbook.close();
         return dataObjects;
+    }
+    
+    public void importBls() throws IOException, IllegalAccessException, InvocationTargetException{
+        List<BLS> list = readExcelBLS();
+        bls.deleteAll();
+        bls.saveAll(list);
     }
     
 }

@@ -7,10 +7,8 @@ import de.ml.foodcare.model.BLS;
 import de.ml.foodcare.model.BLSReduced;
 import de.ml.foodcare.model.Dateiaufbau;
 import de.ml.foodcare.model.DateiaufbauZuordnung;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 
 /**
@@ -39,10 +37,6 @@ public class BLSService {
     public List<BLSReduced> reducedByUntergruppe(String untergruppe){
         return bls.findReducedByUntergruppe(untergruppe);
     }
-    
-//    public List<BLS> blsByUntergruppe(String untergruppe) {
-//        return bls.findBySBLSStartingWith(untergruppe);
-//    }
     
     public Optional<BLS> blsBySbls(String sbls){
         return bls.findBySBLS(sbls).stream().findFirst();

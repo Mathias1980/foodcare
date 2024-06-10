@@ -64,7 +64,7 @@ public class BLSController {
     @GetMapping("/liste")
     public String bls(@AuthenticationPrincipal UserDetails userDetails, Model model) {
 
-        User user = userservice.findUserByUsername(userDetails.getUsername());
+        User user = userservice.findByUsername(userDetails.getUsername()).get();
         
         Map<String, Object> highcolors = data.highchartsColumnColors();
         
@@ -85,7 +85,7 @@ public class BLSController {
     @GetMapping("/suche")
     public String blssuche(@AuthenticationPrincipal UserDetails userDetails, Model model) {
 
-        User user = userservice.findUserByUsername(userDetails.getUsername());
+        User user = userservice.findByUsername(userDetails.getUsername()).get();
         
         List<BLSReduced> blsReduced = blsservice.reducedBls();
         Map<String, Object> highcolors = data.highchartsColumnColors();
@@ -102,7 +102,7 @@ public class BLSController {
     @GetMapping("/rezepte")
     public String rezepte(@AuthenticationPrincipal UserDetails userDetails, Model model) {
 
-        User user = userservice.findUserByUsername(userDetails.getUsername());
+        User user = userservice.findByUsername(userDetails.getUsername()).get();
         List<BLSReduced> blsReduced = blsservice.reducedBls();
         List<BLSReduced> zutatenUser = zs.findBLSReducedByUsername(userDetails.getUsername());
         List<GerichtDto> gerichte = gs.gerichteToDto(gs.getGerichteByUser(userDetails.getUsername()));
@@ -123,14 +123,12 @@ public class BLSController {
     public ResponseEntity<List<Untergruppe>> getUntergruppenByHauptgruppe(
         @PathVariable String hauptgruppe
     ) {
-        // curl localhost:8080/bls/untergruppen/B
         return ResponseEntity.ok(sblsservice.getUntergruppenByHauptgruppe(hauptgruppe));
     }
     
     @GetMapping("/untergruppen")
     @ResponseBody
     public ResponseEntity<List<Untergruppe>> getUntergruppen() {
-        // curl localhost:8080/bls/untergruppen
         return ResponseEntity.ok(sblsservice.getUntergruppen());
     }
     
@@ -138,7 +136,6 @@ public class BLSController {
     public ResponseEntity<List<BLSReduced>> getReducedByUntergruppe(
         @PathVariable String untergruppe
     ) {
-        // curl localhost:8080/bls/reducedbls/B1
         return ResponseEntity.ok(blsservice.reducedByUntergruppe(untergruppe));
     }
     
@@ -146,7 +143,6 @@ public class BLSController {
     public ResponseEntity<List<BLS>> findMaxValuesByUntergruppe(
         @PathVariable String untergruppe
     ) {
-        // curl localhost:8080/bls/maxbls/B1
         return ResponseEntity.ok(blsservice.findMaxValuesByUntergruppe(untergruppe));
     }
     
@@ -173,7 +169,6 @@ public class BLSController {
     public ResponseEntity<BLS> findBLSBySBLS(
         @PathVariable String sbls
     ) {
-        // curl localhost:8080/bls/B100000
         return ResponseEntity.of(blsservice.blsBySbls(sbls));
     }
     
@@ -181,21 +176,18 @@ public class BLSController {
     public ResponseEntity<List<BLS_Dto>> findBLSDTObySBLS(
         @PathVariable String sbls
     ) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-        // curl localhost:8080/bls/user/B100000
         return ResponseEntity.ok(data.findBLSDTObySBLS(sbls));
     }
     
     @GetMapping("/dateiaufbau") 
     @ResponseBody
     public List<Dateiaufbau> findDateiaufbau(){
-        // curl localhost:8080/bls/dateiaufbau
         return blsservice.findDateiaufbau();
     }
     
     @GetMapping("/zuordnung") 
     @ResponseBody
     public List<DateiaufbauZuordnung> findZuordnung(){
-        // curl localhost:8080/bls/zuordnung
         return blsservice.findZuordnung();
     } 
     

@@ -171,7 +171,12 @@
                         message.innerHTML = res.data.message;
                     }).catch(err => {
                         console.log(err);
-                        fehler.innerHTML = err.code + ' ' + err.response.data;
+                        if(err.response.status === 400){
+                            handleValidationErrorResponse(err.response.data.errors);
+                        }else{
+                            fehler.innerHTML = '&#9888; ' + err.response.data.message;
+                            console.log(err);
+                        }
                     }); 
                 }else{
                     axios.put('/gerichte/' + gericht.id, gericht).then( res => {
@@ -180,10 +185,28 @@
                         message.innerHTML = res.data.message;
                     }).catch(err => {
                         console.log(err);
-                        fehler.innerHTML = err.code + ' ' + err.response.data;                      
+                        if(err.response.status === 400){
+                            handleValidationErrorResponse(err.response.data.errors);
+                        }else{
+                            fehler.innerHTML = '&#9888; ' + err.response.data.message;
+                            console.log(err);
+                        }
                     });
-                }
-                
+                }               
+            }
+            
+            const handleValidationErrorResponse = (errorMap) => {
+                rezept.querySelectorAll("input").forEach(input => {
+                    const fieldName = input.name;
+                    if (errorMap[fieldName]) {
+                        console.log(fieldName);
+                        input.setCustomValidity(errorMap[fieldName]);
+                        input.reportValidity();
+                    } else {
+                        input.setCustomValidity('');
+                        input.reportValidity();
+                    }
+                });
             }
             
             const handleDel = (evt) => {
@@ -357,23 +380,24 @@
         <section id="rezept">
             <fieldset>
                 <legend>Rezept</legend>
+                <p id="fehler" class="fehler"></p>
                 <label for="titel">Titel<span id="mTitel"></span></label>
-                <input type="text" id="titel" autocomplete="off"/><br/>
+                <input type="text" id="titel" name="titel" autocomplete="off"/><br/>
                 <label for="kategorie">Kategorie<span id="mKategorie"></span></label>
-                <input type="text" id="kategorie" autocomplete="off" list="_kategorie"/><br/>
+                <input type="text" id="kategorie" name="kategorie" autocomplete="off" list="_kategorie"/><br/>
                 <datalist id="_kategorie" ></datalist>
                 <div class="hashtags" id="hashtagContainer"></div>
-                <div class="zutaten-input-container">
-                    <input type="text" id="eingabe1" name="eingabe1" placeholder="Zutat hinzufügen" autocomplete="off"/>
-                    <input type="text" id="eingabe2" name="eingabe2" placeholder="BLS hinzufügen" autocomplete="off"/>
+                <label for="eingabe1">Zutaten</label>
+                <div class="zutaten-input-container">                   
+                    <input type="text" id="eingabe1" name="zutaten" placeholder="Zutat hinzufügen" autocomplete="off"/>
+                    <input type="text" id="eingabe2" placeholder="BLS hinzufügen" autocomplete="off"/>
                 </div>
-                <label for="anleitung">Anleitung<span id="mAnleitung"></span></label>
-                <input type="text" id="anleitung" autocomplete="off"/><br/>
-                <button id="save" value="default">Speichern</button>
-                <button id="del" value="default">Löschen</button>
                 <ul id="zutaten"></ul>
-                <p id="fehler" class="fehler"></p>
                 <p id="message"></p>
+                <label for="anleitung">Anleitung<span id="mAnleitung"></span></label>
+                <input type="text" id="anleitung" name="anleitung" autocomplete="off"/><br/>
+                <button id="save" value="default">Speichern</button>
+                <button id="del" value="default">Löschen</button>                                            
             </fieldset>           
         
             <div class="liste"> 
