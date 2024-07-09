@@ -38,7 +38,7 @@ import org.hibernate.validator.constraints.UniqueElements;
 @Getter
 @Setter
 @ToString
-public class Gericht {
+public class Gericht implements IGericht{
     
     @Id
     @Column(name = "gericht_id")

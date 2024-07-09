@@ -1,10 +1,7 @@
 package de.ml.foodcare.service;
 
 import de.ml.foodcare.auth.User;
-import de.ml.foodcare.auth.UserService;
-import de.ml.foodcare.data.DateiaufbauRepository;
 import de.ml.foodcare.model.BLS;
-import de.ml.foodcare.model.dto.BLS_Dto;
 import de.ml.foodcare.model.Dateiaufbau;
 import de.ml.foodcare.model.dge.Ballaststoffe;
 import de.ml.foodcare.model.dge.Energie;
@@ -14,15 +11,17 @@ import de.ml.foodcare.model.dge.Protein;
 import de.ml.foodcare.model.dge.Spurenelement;
 import de.ml.foodcare.model.dge.Vitamin;
 import de.ml.foodcare.model.dge.Wasser;
+import de.ml.foodcare.model.gericht.Gericht;
+import de.ml.foodcare.model.gericht.IGericht;
+import de.ml.foodcare.model.gericht.Zutat;
+import jakarta.validation.Valid;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.math3.util.Precision;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 /**
@@ -30,23 +29,11 @@ import org.springframework.stereotype.Service;
  * @author mathi
  */
 @Service
-public class DataService {
+public class DataService {    
     
-    private BLSService bls;
-    private DGEService dge;
-    private UserService userservice;
-    private DateiaufbauRepository drep; 
-    
-    public DataService(BLSService bls, DGEService dge, DateiaufbauRepository drep, UserService userservice){
-        this.bls = bls;
-        this.dge = dge;
-        this.drep = drep;
-        this.userservice = userservice;
-    }
-    
-    public Map<String, Object> highchartsColumnColors(){
+    public Map<String, String> highchartsColumnColors(){
         
-        Map<String, Object> colors = new HashMap<>(); 
+        Map<String, String> colors = new HashMap<>(); 
         colors.put("default", "#eb8934");
         colors.put("Zusammensetzung", "#eb8934");
         colors.put("Vitamine", "#34baeb");
@@ -61,15 +48,81 @@ public class DataService {
         return colors;
     }
     
-    public List<BLS_Dto> findBLSDTObySBLS(String sbls) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException{
-        List<BLS_Dto> res = new ArrayList();
+    public Map<String, Object> nsByBls(BLS b) throws IllegalArgumentException, IllegalAccessException{
+        Map<String, Object> dto = new HashMap<>();
+        Class<?> blsClass = BLS.class;
+        Field[] fields = blsClass.getDeclaredFields();
+        for (Field field : fields) {
+            if (field.getType() == double.class) {
+                field.setAccessible(true); 
+                dto.put(field.getName(), field.get(b)); 
+            }
+        }
+        return dto;
+    }
+    
+    public <T extends IGericht> List<Map<String, Object>> dto(T source, List<@Valid Dateiaufbau> dlist, Optional<BLS> avgG, Optional<BLS> avgHG, Optional<BLS> avgUG, Optional<Map<String, Object>> userDGE, Optional<User> user) throws IllegalArgumentException, IllegalAccessException{
+              
+        List<Map<String, Object>> liste = new ArrayList<>();
+        Map<String, String> colors = highchartsColumnColors();
         
-        Authentication authuser = SecurityContextHolder.getContext().getAuthentication();
-        User user = userservice.findByUsername(authuser.getName()).get();
-        
-        Map<String, Object> userDGE = dge.findDGEByUser(user);
-        BLS sblsBLS = bls.blsBySbls(sbls).get();
-        List<Dateiaufbau> dlist = drep.findAll();
+        Class<?> blsClass = BLS.class;
+        Field[] fields = blsClass.getDeclaredFields();
+        for (Field field : fields) {
+            if (field.getType() == double.class) {
+                field.setAccessible(true);
+                Optional<Dateiaufbau> d = dlist.stream().filter(obj -> obj.getKurz().equals(field.getName())).findFirst();
+                if(d.isPresent()){
+                    Map<String, Object> dto = new HashMap<>();
+                    dto.put("feld", d.get().getFeld());
+                    dto.put("kurz", d.get().getKurz());
+                    dto.put("variable", d.get().getVariable());
+                    dto.put("name", d.get().getVariable());
+                    dto.put("art", d.get().getArt());
+                    dto.put("laenge", d.get().getLaenge());
+                    dto.put("dimension", d.get().getDimension());
+                    dto.put("zuordnung", d.get().getZuordnung());
+                    if(source instanceof BLS){
+                        BLS b = (BLS) source;
+                        dto.put("abs", Precision.round(field.getDouble(b), 2));
+                    }else if(source instanceof Zutat){
+                        Zutat z = (Zutat) source;
+                        dto.put("abs", Precision.round(field.getDouble(z.getBls()) * z.getMenge() / 100, 2));
+                        dto.put("dimension", d.get().getDimension().split("/")[0] + "/" + z.getMenge() );
+                    }else if(source instanceof Gericht){
+                        Gericht g = (Gericht) source;
+                        double sum = 0.0, menge = 0.0;
+                        for (int i = 0; i < g.getZutaten().size(); i++) {
+                            sum += field.getDouble(g.getZutaten().get(i).getBls()) * g.getZutaten().get(i).getMenge() / 100;
+                            menge += g.getZutaten().get(i).getMenge();
+                        }
+                        dto.put("abs", Precision.round(sum / menge * 100, 2));
+                    }
+                    if(avgG.isPresent()){
+                        dto.put("avgG", Precision.round(field.getDouble(avgG.get()), 2));
+                    }
+                    if(avgHG.isPresent()){
+                        dto.put("avgHG", Precision.round(field.getDouble(avgHG.get()), 2));
+                    }
+                    if(avgUG.isPresent()){
+                        dto.put("avgUG", Precision.round(field.getDouble(avgUG.get()), 2));
+                    }
+                    if(userDGE.isPresent() && user.isPresent()){
+                        dto.put("dge", Precision.round(dge(dto, user.get(), userDGE.get()), 2));
+                    }
+                    dto.put("color", colors.get(colors.keySet().stream()
+                                        .filter(c -> d.get().getZuordnung().contains(c))
+                                        .findFirst()
+                                        .orElse("default")));
+                    liste.add(dto);   
+                }
+            }
+        }
+        return liste;
+    }
+    
+    public double dge(Map<String, Object> dto, User user, Map<String, Object> userDGE){
+        Map<String, Double> res = new HashMap<>();
         
         Energie e = (Energie) userDGE.get("energie");
         Protein p = (Protein) userDGE.get("protein");
@@ -80,186 +133,106 @@ public class DataService {
         List<Mengenelement> m = (List<Mengenelement>) userDGE.get("mengene");
         List<Spurenelement> s = (List<Spurenelement>) userDGE.get("spur");
         
-        Class<?> blsClass = BLS.class;
-        Field[] fields = blsClass.getDeclaredFields();
-        for (Field field : fields) {
-            if (field.getType() == double.class) {
-                Dateiaufbau d = dlist.stream().filter(obj -> obj.getKurz().equals(field.getName())).findFirst().get();
-                                
-                BLS_Dto dto = new BLS_Dto();
-                dto.setSbls(sblsBLS.getSBLS());
-                dto.setFeld(d.getFeld());
-                dto.setKurz(field.getName().toUpperCase());
-                dto.setName(d.getVariable());
-                dto.setArt(d.getArt());
-                dto.setDimension(d.getDimension());
-                dto.setZuordnung(d.getZuordnung());
-                dto.setAbs( (double) sblsBLS.getClass().getMethod("get" + field.getName().substring(0, 1).toUpperCase() + field.getName().substring(1)).invoke(sblsBLS));
-                               
-                switch(dto.getKurz()){
-                    case "GCAL":      
-                        dto.setY(Precision.round( (dto.getAbs() * 100) / e.getKcalProTag(), 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "ZW":                      
-                        dto.setY(Precision.round( ((dto.getAbs()/1000) * 100) / (w.getZufuhrMlProKgProTag()*user.getWeight()), 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "ZE":                      
-                        dto.setY(Precision.round( ((dto.getAbs()/1000) * 100) / (p.getgProKgGewichtProTag()*user.getWeight()), 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "ZF":                      
-                        dto.setY(Precision.round( ((dto.getAbs()*9/1000) * 100) / (f.getFettProzentEnergie()*dto.getAbs()/100), 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "ZK":                      
-                        dto.setY(Precision.round(dto.getAbs()/1000, 2));
-                        dto.setInfo("prozent");
-                        break;
-                          
-                    case "ZB":                      
-                        dto.setY(Precision.round(dto.getAbs()/1000, 2));
-                        dto.setInfo("prozent");
-                        break;
-                        
-                    case "VA":                      
-                        dto.setY(Precision.round( dto.getAbs()*100 /  v.stream().filter( obj -> obj.getBez().equals("Retinol")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "VD":                      
-                        dto.setY(Precision.round( dto.getAbs()*100 /  v.stream().filter( obj -> obj.getBez().equals("D")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "VEAT":                      
-                        dto.setY(Precision.round( (dto.getAbs()/1000)*100 /  v.stream().filter( obj -> obj.getBez().equals("Tocopherol")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "VK":                      
-                        dto.setY(Precision.round( dto.getAbs()*100 /  v.stream().filter( obj -> obj.getBez().equals("K")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "VB1":                      
-                        dto.setY(Precision.round( (dto.getAbs()/1000)*100 /  v.stream().filter( obj -> obj.getBez().equals("Thiamin")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "VB2":                      
-                        dto.setY(Precision.round( (dto.getAbs()/1000)*100 /  v.stream().filter( obj -> obj.getBez().equals("Riboflavin")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "VB3":                      
-                        dto.setY(Precision.round( (dto.getAbs()/1000)*100 /  v.stream().filter( obj -> obj.getBez().equals("Niacin")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "VB6":                      
-                        dto.setY(Precision.round( (dto.getAbs()/1000)*100 /  v.stream().filter( obj -> obj.getBez().equals("B6")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "VB9G":                      
-                        dto.setY(Precision.round( dto.getAbs()*100 /  v.stream().filter( obj -> obj.getBez().equals("Folat")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "VB5":                      
-                        dto.setY(Precision.round( (dto.getAbs()/1000)*100 /  v.stream().filter( obj -> obj.getBez().equals("Pantothen")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "VB7":                      
-                        dto.setY(Precision.round( dto.getAbs()*100 /  v.stream().filter( obj -> obj.getBez().equals("Biotin")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "VB12":                      
-                        dto.setY(Precision.round( dto.getAbs()*100 /  v.stream().filter( obj -> obj.getBez().equals("B12")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "VC":                      
-                        dto.setY(Precision.round( (dto.getAbs()/1000)*100 /  v.stream().filter( obj -> obj.getBez().equals("C")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "MNA":                      
-                        dto.setY(Precision.round( dto.getAbs()*100 /  m.stream().filter( obj -> obj.getBez().equals("Natrium")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "MCL":                      
-                        dto.setY(Precision.round( dto.getAbs()*100 /  m.stream().filter( obj -> obj.getBez().equals("Chlorid")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "MK":                      
-                        dto.setY(Precision.round( dto.getAbs()*100 /  m.stream().filter( obj -> obj.getBez().equals("Kalium")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "Calcium":                      
-                        dto.setY(Precision.round( dto.getAbs()*100 /  m.stream().filter( obj -> obj.getBez().equals("Calcium")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "MP":                      
-                        dto.setY(Precision.round( dto.getAbs()*100 /  m.stream().filter( obj -> obj.getBez().equals("Phosphor")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "MMG":                      
-                        dto.setY(Precision.round( dto.getAbs()*100 /  m.stream().filter( obj -> obj.getBez().equals("Magnesium")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "MFE":                      
-                        dto.setY(Precision.round( (dto.getAbs()/1000)*100 /  s.stream().filter( obj -> obj.getBez().equals("Eisen")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "MJ":                      
-                        dto.setY(Precision.round( dto.getAbs()*100 /  s.stream().filter( obj -> obj.getBez().equals("Jod")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "MF":                      
-                        dto.setY(Precision.round( (dto.getAbs()/1000)*100 /  s.stream().filter( obj -> obj.getBez().equals("Flourid")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "MZN":                      
-                        dto.setY(Precision.round( (dto.getAbs()/1000)*100 /  s.stream().filter( obj -> obj.getBez().equals("Zink")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "MCU":                      
-                        dto.setY(Precision.round( (dto.getAbs()/1000)*100 /  s.stream().filter( obj -> obj.getBez().equals("Kupfer")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    case "MMN":                      
-                        dto.setY(Precision.round( (dto.getAbs()/1000)*100 /  s.stream().filter( obj -> obj.getBez().equals("Mangan")).findFirst().get().getEinheitProTag() , 2));
-                        dto.setInfo("user");
-                        break;
-                        
-                    default:
-                        dto.setY(Precision.round(dto.getAbs(), 2));
-                        
-                    }
-            res.add(dto);
-            }
-        }
-    return res;                    
+        switch((String) dto.get("kurz")){
+
+              case "GCAL":      
+                  return Precision.round( ((double) dto.get("abs") * 100) / e.getKcalProTag(), 2);
+
+              case "ZW":                      
+                  return Precision.round( (((double) dto.get("abs")/1000) * 100) / (w.getZufuhrMlProKgProTag()*user.getWeight()), 2);
+
+              case "ZE":                      
+                  return Precision.round( (((double) dto.get("abs")/1000) * 100) / (p.getgProKgGewichtProTag()*user.getWeight()), 2);
+
+              case "ZF":                      
+                  return Precision.round( (((double) dto.get("abs")*9/1000) * 100) / (f.getFettProzentEnergie()*(double) dto.get("abs")/100), 2);
+
+              case "ZK":                      
+                  return Precision.round((double) dto.get("abs")/1000, 2);
+
+              case "ZB":                      
+                  return Precision.round((double) dto.get("abs")/1000, 2);
+
+              case "VA":                      
+                  return Precision.round( (double) dto.get("abs")*100 /  v.stream().filter( obj -> obj.getBez().equals("Retinol")).findFirst().get().getEinheitProTag() , 2);
+
+              case "VD":                      
+                  return Precision.round( (double) dto.get("abs")*100 /  v.stream().filter( obj -> obj.getBez().equals("D")).findFirst().get().getEinheitProTag() , 2);
+
+              case "VEAT":                      
+                  return Precision.round( ((double) dto.get("abs")/1000)*100 /  v.stream().filter( obj -> obj.getBez().equals("Tocopherol")).findFirst().get().getEinheitProTag() , 2);
+
+              case "VK":                      
+                  return Precision.round( (double) dto.get("abs")*100 /  v.stream().filter( obj -> obj.getBez().equals("K")).findFirst().get().getEinheitProTag() , 2);
+
+              case "VB1":                      
+                  return Precision.round( ((double) dto.get("abs")/1000)*100 /  v.stream().filter( obj -> obj.getBez().equals("Thiamin")).findFirst().get().getEinheitProTag() , 2);
+
+              case "VB2":                      
+                  return Precision.round( ((double) dto.get("abs")/1000)*100 /  v.stream().filter( obj -> obj.getBez().equals("Riboflavin")).findFirst().get().getEinheitProTag() , 2);
+
+              case "VB3":                      
+                  return Precision.round( ((double) dto.get("abs")/1000)*100 /  v.stream().filter( obj -> obj.getBez().equals("Niacin")).findFirst().get().getEinheitProTag() , 2);
+
+              case "VB6":                      
+                  return Precision.round( ((double) dto.get("abs")/1000)*100 /  v.stream().filter( obj -> obj.getBez().equals("B6")).findFirst().get().getEinheitProTag() , 2);
+
+              case "VB9G":                      
+                  return Precision.round( (double) dto.get("abs")*100 /  v.stream().filter( obj -> obj.getBez().equals("Folat")).findFirst().get().getEinheitProTag() , 2);
+
+              case "VB5":                      
+                  return Precision.round( ((double) dto.get("abs")/1000)*100 /  v.stream().filter( obj -> obj.getBez().equals("Pantothen")).findFirst().get().getEinheitProTag() , 2);
+
+              case "VB7":                      
+                  return Precision.round( (double) dto.get("abs")*100 /  v.stream().filter( obj -> obj.getBez().equals("Biotin")).findFirst().get().getEinheitProTag() , 2);
+
+              case "VB12":                      
+                  return Precision.round( (double) dto.get("abs")*100 /  v.stream().filter( obj -> obj.getBez().equals("B12")).findFirst().get().getEinheitProTag() , 2);
+
+              case "VC":                      
+                  return Precision.round( ((double) dto.get("abs")/1000)*100 /  v.stream().filter( obj -> obj.getBez().equals("C")).findFirst().get().getEinheitProTag() , 2);
+
+              case "MNA":                      
+                  return Precision.round( (double) dto.get("abs")*100 /  m.stream().filter( obj -> obj.getBez().equals("Natrium")).findFirst().get().getEinheitProTag() , 2);
+
+              case "MCL":                      
+                  return Precision.round( (double) dto.get("abs")*100 /  m.stream().filter( obj -> obj.getBez().equals("Chlorid")).findFirst().get().getEinheitProTag() , 2);
+
+              case "MK":                      
+                  return Precision.round( (double) dto.get("abs")*100 /  m.stream().filter( obj -> obj.getBez().equals("Kalium")).findFirst().get().getEinheitProTag() , 2);
+
+              case "Calcium":                      
+                  return Precision.round( (double) dto.get("abs")*100 /  m.stream().filter( obj -> obj.getBez().equals("Calcium")).findFirst().get().getEinheitProTag() , 2);
+
+              case "MP":                      
+                  return Precision.round( (double) dto.get("abs")*100 /  m.stream().filter( obj -> obj.getBez().equals("Phosphor")).findFirst().get().getEinheitProTag() , 2);
+
+              case "MMG":                      
+                  return Precision.round( (double) dto.get("abs")*100 /  m.stream().filter( obj -> obj.getBez().equals("Magnesium")).findFirst().get().getEinheitProTag() , 2);
+
+              case "MFE":                      
+                  return Precision.round( ((double) dto.get("abs")/1000)*100 /  s.stream().filter( obj -> obj.getBez().equals("Eisen")).findFirst().get().getEinheitProTag() , 2);
+
+              case "MJ":                      
+                  return Precision.round( (double) dto.get("abs")*100 /  s.stream().filter( obj -> obj.getBez().equals("Jod")).findFirst().get().getEinheitProTag() , 2);
+
+              case "MF":                      
+                  return Precision.round( ((double) dto.get("abs")/1000)*100 /  s.stream().filter( obj -> obj.getBez().equals("Flourid")).findFirst().get().getEinheitProTag() , 2);
+
+              case "MZN":                      
+                  return Precision.round( ((double) dto.get("abs")/1000)*100 /  s.stream().filter( obj -> obj.getBez().equals("Zink")).findFirst().get().getEinheitProTag() , 2);
+
+              case "MCU":                      
+                  return Precision.round( ((double) dto.get("abs")/1000)*100 /  s.stream().filter( obj -> obj.getBez().equals("Kupfer")).findFirst().get().getEinheitProTag() , 2);
+
+              case "MMN":                      
+                  return Precision.round( ((double) dto.get("abs")/1000)*100 /  s.stream().filter( obj -> obj.getBez().equals("Mangan")).findFirst().get().getEinheitProTag() , 2);
+
+              default:
+                  return Precision.round((double) dto.get("abs"), 2);
+
+        }                  
+        
     }
     
 }

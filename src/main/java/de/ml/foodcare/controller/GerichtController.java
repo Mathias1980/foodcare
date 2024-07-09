@@ -1,7 +1,6 @@
 package de.ml.foodcare.controller;
 
 import de.ml.foodcare.exceptions.ConflictException;
-import de.ml.foodcare.exceptions.ResourceNotFoundException;
 import de.ml.foodcare.service.BLSService;
 import de.ml.foodcare.model.gericht.Gericht;
 import de.ml.foodcare.model.dto.GerichtDto;
@@ -10,6 +9,7 @@ import de.ml.foodcare.model.dto.ZutatDto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import java.net.URI;
+import java.util.List;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,34 +42,41 @@ public class GerichtController {
         this.blsservice = blsservice;
     }
     
-    @GetMapping                          
-    public Stream<Gericht> getGerichte() {
-        return gerichtservice.getGerichte().stream();
-    }
-    
-    @GetMapping("/dto")                          
-    public Stream<GerichtDto> getGerichteDto() {
-        return gerichtservice.getGerichteDto().stream();
+    @GetMapping("/")                          
+    public Stream<GerichtDto> getGerichte() throws IllegalArgumentException, IllegalAccessException {
+        return gerichtservice.listeToDto(gerichtservice.getGerichte(), false).stream();
     }
     
     @GetMapping("/{id}")                    
-    public ResponseEntity<Gericht> getGericht(
+    public ResponseEntity<GerichtDto> getGericht(
         @PathVariable int id
-    ) {
-        return ResponseEntity.of(gerichtservice.getGericht(id));
+    ) throws IllegalArgumentException, IllegalAccessException {
+        return ResponseEntity.ok( gerichtservice.toDto( gerichtservice.getGericht(id), false ));
     }
     
+    @GetMapping("/ns")                          
+    public Stream<GerichtDto> getGerichteNs() throws IllegalArgumentException, IllegalAccessException {
+        return gerichtservice.listeToDto(gerichtservice.getGerichte(), true).stream();
+    }
+    
+    @GetMapping("/ns/{id}")                    
+    public ResponseEntity<GerichtDto> getGerichtNs(
+        @PathVariable int id
+    ) throws IllegalArgumentException, IllegalAccessException {
+        return ResponseEntity.ok( gerichtservice.toDto( gerichtservice.getGericht(id), true ));
+    }
+     
     @PostMapping                           
     public ResponseEntity<?> postGericht(
         @Valid @RequestBody GerichtDto gdto
-    ) {
+    ) throws IllegalAccessException {
         if(gerichtservice.existsGerichtByTitelKategorie(gdto.getTitel(), gdto.getKategorie())){
             throw new ConflictException("Titel + Kategorie bereits vorhanden.");
         }else{
             long id = gerichtservice.create(gdto);
             return ResponseEntity
                 .created(URI.create("/gerichte/" + id))
-                .body(gerichtservice.gerichtToDto(gerichtservice.getGericht(id).get()));
+                .body(gerichtservice.toDto(gerichtservice.getGericht(id), false));
         }
     }
     
@@ -77,11 +84,11 @@ public class GerichtController {
     public ResponseEntity<?> putGericht(
         @Positive @PathVariable int id,
         @Valid @RequestBody GerichtDto gDto  
-    ) {
+    ) throws IllegalAccessException {
         if (id != gDto.getId()) {
             throw new ConflictException("ID passt nicht zu Gericht.");
         }
-        Gericht gericht = gerichtservice.getGericht(id).orElseThrow(() -> new ResourceNotFoundException("Gericht nicht vorhanden"));
+        Gericht gericht = gerichtservice.getGericht(id);
 
         StringBuilder sb = new StringBuilder();
         String SEPARATOR = "";
@@ -93,7 +100,7 @@ public class GerichtController {
                 gDto.getZutaten().remove(dto);
             }
         }
-        GerichtDto res = gerichtservice.gerichtToDto(gerichtservice.update(gericht, gDto));
+        GerichtDto res = gerichtservice.toDto(gerichtservice.update(gericht, gDto), false);
         res.setMessage(sb.toString());
         return ResponseEntity.ok(res);
     }
@@ -102,9 +109,15 @@ public class GerichtController {
     public ResponseEntity<?> deleteGericht(
         @PathVariable int id
     ) {
-        gerichtservice.getGericht(id).orElseThrow(() -> new ResourceNotFoundException("Gericht nicht vorhanden"));
         gerichtservice.removeGericht(id);
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+    
+    @GetMapping("/kategorie/{username}")                    
+    public ResponseEntity<List<String>> getKategorienByUsername(
+        @PathVariable String username
+    ){
+        return ResponseEntity.ok(gerichtservice.findDistinctKategorieByUsername(username));
     }
     
 }

@@ -17,15 +17,7 @@
             /*<![CDATA[*/
                 const data = {
                     blsReduced: /*[[${blsReduced}]]*/ 'default',
-                    colors: /*[[${colors}]]*/ 'default',
-                    avgG: /*[[${avgG}]]*/ 'default',
-                    avgUG: {},
-                    avgHG: {},
                     blsdto: [],
-                    getColor: function(z) {
-                      let key = Object.keys(this.colors).find(k => z.includes(k));
-                      return key ? this.colors[key] : null;
-                    },
                     suche(term){
                         return this.blsReduced.filter(e => e.st.toLowerCase().includes(term.toLowerCase()));
                     }
@@ -44,18 +36,12 @@
             
             const loadBLS = (evt) => {
                 
-                let sbls = evt.target.id;
-                
-                Promise.all([
-                    fetch('/bls/avgHG/' + sbls.substring(0,1)),
-                    fetch('/bls/avgUG/' + sbls.substring(0,2)),
-                    fetch('/bls/dto/' + sbls)
-                  ]).then(responses => {
-                    return Promise.all(responses.map(res => res.json()));
-                  }).then(res => {
-                        data.avgHG = res[0]; 
-                        data.avgUG = res[1]; 
-                        data.blsdto = res[2];
+                let sbls = evt.target.id;               
+                fetch('/bls/' + sbls).then(
+                        res => res.json()
+                    ).then(res => {
+                        data.blsdto = res;
+                        console.log(data.blsdto);
                         chart.setTitle({text: '100g ' + evt.target.textContent});
                         drawChart(relation.querySelector('input[type="radio"]:checked').value);
                   }).catch(error => {
@@ -65,16 +51,19 @@
             
             const drawChart = (rel) => {
                 if(rel === 'rel1'){
-                    let chartdata = data.blsdto.filter((obj) => obj.info === 'user');                           
+                    let chartdata = [...data.blsdto.ns].map(obj => ({
+                                                                ...obj,
+                                                                y: obj.dge
+                                                              }));                           
                     chart.setSize(undefined, chartdata.length * 23);
-                    chart.series[0].setData(addColors(chartdata));
+                    chart.series[0].setData(chartdata);
                 }else{
-                    let chartdata = [...data.blsdto].map(obj => ({
+                    let chartdata = [...data.blsdto.ns].map(obj => ({
                         ...obj,
-                        y: parseFloat(calculatePercentage(obj.abs, data[rel][obj.kurz.toLowerCase()]).toFixed(2))
+                        y: parseFloat(calculatePercentage(obj.abs, obj[rel]).toFixed(2))
                       }));
                     chart.setSize(undefined, chartdata.length * 23);
-                    chart.series[0].setData(addColors(chartdata));
+                    chart.series[0].setData(chartdata);
                 }
             }
             

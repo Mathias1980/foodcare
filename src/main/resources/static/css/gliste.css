@@ -1,0 +1,65 @@
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+}
+
+.fehler {
+    color: red;
+}
+
+.message {
+    color: green;
+}
+
+.content {
+    margin-top: 80px; /* Höhe des Headers + etwas Abstand */
+    padding: 1em;
+}
+
+.table-container {
+    overflow-x: auto; /* Horizontales Scrollen aktivieren */
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+th {
+    padding: 0.5em;
+    border: 1px solid #ddd;
+    text-align: center;
+    width: 130px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+td {
+    padding: 0.5em;
+    border: 1px solid #ddd;
+    text-align: right;
+    width: 130px;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+
+.wahl {
+    display: flex;
+    justify-content: center; /* Optional: Center the form section horizontally */
+    gap: 10px; /* Space between the elements */
+    padding: 20px;
+}
+
+.wahl select,
+.wahl input {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+}

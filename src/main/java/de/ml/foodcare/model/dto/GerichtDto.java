@@ -13,6 +13,7 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -55,6 +56,10 @@ public class GerichtDto {
     
     @NotNull(message = "Hashtags darf nicht null sein.")
     private List<@Valid HashtagDto> hashtags;
+    
+    private List<Map<String, Object>> ns;
+    
+    private double gewicht;
     
     @PastOrPresent(message = "created darf nicht in der Zukunft liegen")
     private LocalDateTime created;

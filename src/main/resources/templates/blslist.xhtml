@@ -10,16 +10,8 @@
         <script th:inline="javascript">
             /*<![CDATA[*/
                 const data = {
-                    colors: /*[[${colors}]]*/ 'default',
                     untergruppen: /*[[${ug}]]*/ 'default',
-                    avgG: /*[[${avgG}]]*/ 'default',
-                    avgUG: {},
-                    avgHG: {},
                     blsdto: [],
-                    getColor: function(z) {
-                      let key = Object.keys(this.colors).find(k => z.includes(k));
-                      return key ? this.colors[key] : null;
-                    },
                     untergruppenByHG(hg){
                         return this.untergruppen.filter(e => e.hauptgruppe === hg);
                     }
@@ -113,14 +105,10 @@
             const chart = erstelleChart('container', basisOptionen);
 
             const init = () => {   
-                loadUntergruppe(document.querySelector('#hg').value, document.querySelector('#ug'));
+                setUntergruppe(document.querySelector('#hg').value, document.querySelector('#ug'));
             }
 
-            const loadUntergruppe = (hg, slctUntergruppe) => {               
-                fetch('/bls/avgHG/' + hg).then(
-                    res => res.json()
-                ).then( res => {
-                    data.avgHG = res;
+            const setUntergruppe = (hg, slctUntergruppe) => {               
                     while (slctUntergruppe.firstChild) {
                         slctUntergruppe.removeChild(slctUntergruppe.firstChild);
                     }
@@ -131,25 +119,16 @@
                         optionUG.value = ug.hauptgruppe + ug.untergruppe;
                         slctUntergruppe.append(optionUG);                      
                     }
-                }).catch(
-                    error => {
-                    console.error('Ein Fehler ist aufgetreten:', error);
-                })
             }
             
             const loadReducedBLS = (ug, slctReducedBls) => {               
-                Promise.all([
-                    fetch('/bls/reducedbls/' + ug),
-                    fetch('/bls/avgUG/' + ug)
-                  ]).then(responses => {
-                    return Promise.all(responses.map(res => res.json()));
-                  }).then(res => {
-                        data.avgUG = res[1];  
-                        
+                fetch('/bls/reducedbls/' + ug).then(
+                        res => res.json()
+                    ).then(res => {                        
                         while (slctReducedBls.firstChild) {
                             slctReducedBls.removeChild(slctReducedBls.firstChild);
                         }
-                        for (let bls of res[0]) {
+                        for (let bls of res) {
                             let optionBls = document.createElement('option');
                             optionBls.innerHTML = bls.st;
                             optionBls.value = bls.sbls;
@@ -158,43 +137,36 @@
                   }).catch(error => {
                     console.error('Ein Fehler ist aufgetreten:', error);
                   });
-            }
+            }                      
             
-            const addColors = (chartdata) => {
-                return chartdata
-                        .map(obj => {
-                            return {
-                              ...obj,
-                              color: data.getColor(obj.zuordnung) 
-                            };
-                          })
-                        .sort((a,b) => a.feld - b.feld)
-            }           
-            
-            const drawChart = (evt) => {
+            const drawChart = (evt) => {               
                 
                 const setChart = (rel) => {
-                    let chartdata = [...data.blsdto].map(obj => ({
+                    console.log(rel);
+                    let chartdata = [...data.blsdto.ns].map(obj => ({
                             ...obj,
-                            y: parseFloat(calculatePercentage(obj.abs, data[rel][obj.kurz.toLowerCase()]).toFixed(2))
+                            y: parseFloat(calculatePercentage(obj.abs, obj[rel]).toFixed(2))
                           }));
-                    chart.setTitle({text: '100g ' + [...evt.target.closest('fieldset').elements].filter( el => el.id === 'blsReduced' )[0].options[[...evt.target.closest('fieldset').elements].filter( el => el.id === 'blsReduced' )[0].selectedIndex].text});
+                    chart.setTitle({text: '100g ' + data.blsdto.title});
                     chart.setSize(undefined, chartdata.length * 23);
-                    chart.series[0].setData(addColors(chartdata));
+                    chart.series[0].setData(chartdata);
                 } 
                 
                 if(evt.target.id === 'blsReduced'){
                     console.log([...evt.target.closest('fieldset').elements].filter( el => el.id === 'blsReduced' )[0].value);
                     let sbls = [...evt.target.closest('fieldset').elements].filter( el => el.id === 'blsReduced' )[0].value;
-                    fetch('/bls/dto/' + sbls).then(
+                    fetch('/bls/' + sbls).then(
                         res => res.json()
                     ).then( blsdto => {
-                        data.blsdto = [...blsdto];
+                        console.log(blsdto);
+                        data.blsdto = blsdto;
                         if([...evt.target.closest('fieldset').elements].filter( el => el.id === 'rel1' )[0].checked){
-                            let chartdata = addColors(blsdto).filter((obj) => obj.info === 'user');
-                            chart.setTitle({text: '100g ' + [...evt.target.closest('fieldset').elements].filter( el => el.id === 'blsReduced' )[0].options[[...evt.target.closest('fieldset').elements].filter( el => el.id === 'blsReduced' )[0].selectedIndex].text});
-                            chart.setSize(undefined, chartdata.length * 23);
-                            chart.series[0].setData(chartdata);
+                            chart.setTitle({text: '100g ' + data.blsdto.title});
+                            chart.setSize(undefined, data.blsdto.ns.length * 23);
+                            chart.series[0].setData([...data.blsdto.ns].map(obj => ({
+                                                                                    ...obj,
+                                                                                    y: obj.dge
+                                                                                  })));
                         }else{
                             setChart(evt.target.closest('fieldset').querySelector('input[type="radio"]:checked').value);
                         }
@@ -204,10 +176,12 @@
                     }) 
                 }else{
                     if([...evt.target.closest('fieldset').elements].filter( el => el.id === 'rel1' )[0].checked){
-                        let chartdata = addColors([...data.blsdto]).filter((obj) => obj.info === 'user');
-                        chart.setTitle({text: '100g ' + [...evt.target.closest('fieldset').elements].filter( el => el.id === 'blsReduced' )[0].options[[...evt.target.closest('fieldset').elements].filter( el => el.id === 'blsReduced' )[0].selectedIndex].text});
-                        chart.setSize(undefined, chartdata.length * 23);
-                        chart.series[0].setData(chartdata);
+                        chart.setTitle({text: '100g ' + data.blsdto.title});
+                        chart.setSize(undefined, data.blsdto.ns.length * 23);
+                        chart.series[0].setData([...data.blsdto.ns].map(obj => ({
+                                                                                    ...obj,
+                                                                                    y: obj.dge
+                                                                                  })));
                     }else{
                         setChart(evt.target.closest('fieldset').querySelector('input[type="radio"]:checked').value);
                     }
@@ -222,7 +196,7 @@
                 
                 if (evt.target.id === 'hg') {                   
                     console.log('hg ' + evt.target.value);
-                    loadUntergruppe(evt.target.value, [...evt.target.closest('fieldset').elements].filter( el => el.id === 'ug' )[0]);
+                    setUntergruppe(evt.target.value, [...evt.target.closest('fieldset').elements].filter( el => el.id === 'ug' )[0]);
                 }else if (evt.target.id === 'ug') {
                     console.log('ug ' + evt.target.value);
                     loadReducedBLS(evt.target.value, [...evt.target.closest('fieldset').elements].filter( el => el.id === 'blsReduced' )[0]);

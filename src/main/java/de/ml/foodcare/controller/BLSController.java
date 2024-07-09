@@ -1,39 +1,25 @@
 package de.ml.foodcare.controller;
 
-import de.ml.foodcare.auth.User;
-import de.ml.foodcare.auth.UserService;
-import de.ml.foodcare.service.DataService;
 import de.ml.foodcare.model.BLS;
 import de.ml.foodcare.model.BLSReduced;
 import de.ml.foodcare.service.BLSService;
-import de.ml.foodcare.model.dto.BLS_Dto;
 import de.ml.foodcare.model.Dateiaufbau;
 import de.ml.foodcare.model.DateiaufbauZuordnung;
-import de.ml.foodcare.model.SBLS.Hauptgruppe;
 import de.ml.foodcare.service.SBLS_Service;
 import de.ml.foodcare.model.SBLS.Untergruppe;
-import de.ml.foodcare.model.dto.GerichtDto;
-import de.ml.foodcare.service.GerichtService;
-import de.ml.foodcare.model.gericht.Hashtag;
-import de.ml.foodcare.service.HashtagService;
-import de.ml.foodcare.service.ZutatService;
-import java.lang.reflect.InvocationTargetException;
+import de.ml.foodcare.model.dto.BLSDto;
 import java.util.List;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.context.annotation.SessionScope;
 
 /**
  *
@@ -41,83 +27,17 @@ import org.springframework.web.context.annotation.SessionScope;
  */
 @Controller
 @RequestMapping("/bls")
-@SessionScope
 public class BLSController {
     
-    @Autowired
     private BLSService blsservice;
-    @Autowired
     private SBLS_Service sblsservice;
-    @Autowired
-    private UserService userservice;
-    @Autowired
-    private DataService data;
-    @Autowired
-    private ZutatService zs;
-    @Autowired
-    private GerichtService gs; 
-    @Autowired
-    private HashtagService hs;
+    
+    public BLSController(BLSService blsservice, SBLS_Service sblsservice){
+        this.blsservice = blsservice;
+        this.sblsservice = sblsservice;
+    }
     
     private static final Logger log = LoggerFactory.getLogger(BLSController.class);
-    
-    @GetMapping("/liste")
-    public String bls(@AuthenticationPrincipal UserDetails userDetails, Model model) {
-
-        User user = userservice.findByUsername(userDetails.getUsername()).get();
-        
-        Map<String, Object> highcolors = data.highchartsColumnColors();
-        
-        List<Hauptgruppe> hg = sblsservice.getHauptgruppen();
-        List<Untergruppe> ug = sblsservice.getUntergruppen();
-        
-        BLS avgG = blsservice.findAvgValuesGesamt();
-        
-        model.addAttribute("hg", hg);
-        model.addAttribute("ug", ug);
-        model.addAttribute("user", user);
-        model.addAttribute("colors", highcolors);
-        model.addAttribute("avgG", avgG);
-        
-        return "blslist.xhtml";    
-    }
-    
-    @GetMapping("/suche")
-    public String blssuche(@AuthenticationPrincipal UserDetails userDetails, Model model) {
-
-        User user = userservice.findByUsername(userDetails.getUsername()).get();
-        
-        List<BLSReduced> blsReduced = blsservice.reducedBls();
-        Map<String, Object> highcolors = data.highchartsColumnColors();
-        BLS avgG = blsservice.findAvgValuesGesamt();
-        
-        model.addAttribute("blsReduced", blsReduced);
-        model.addAttribute("colors", highcolors);
-        model.addAttribute("avgG", avgG);
-        model.addAttribute("user", user);
-        
-        return "blssuche.xhtml";    
-    }
-    
-    @GetMapping("/rezepte")
-    public String rezepte(@AuthenticationPrincipal UserDetails userDetails, Model model) {
-
-        User user = userservice.findByUsername(userDetails.getUsername()).get();
-        List<BLSReduced> blsReduced = blsservice.reducedBls();
-        List<BLSReduced> zutatenUser = zs.findBLSReducedByUsername(userDetails.getUsername());
-        List<GerichtDto> gerichte = gs.gerichteToDto(gs.getGerichteByUser(userDetails.getUsername()));
-        List<Hashtag> hashtags = hs.findAll();
-        List<String> kategorien = gs.findDistinctKategorie();
-        
-        model.addAttribute("zutatenUser", zutatenUser);
-        model.addAttribute("bls", blsReduced);
-        model.addAttribute("gerichte", gerichte);
-        model.addAttribute("hashtags", hashtags);
-        model.addAttribute("kategorien", kategorien);
-        model.addAttribute("user", user);
-        
-        return "rezepte.xhtml";    
-    }
     
     @GetMapping("/untergruppen/{hauptgruppe}")                   
     public ResponseEntity<List<Untergruppe>> getUntergruppenByHauptgruppe(
@@ -166,18 +86,11 @@ public class BLSController {
     }
     
     @GetMapping("/{sbls}")                 
-    public ResponseEntity<BLS> findBLSBySBLS(
+    public ResponseEntity<BLSDto> findBLSBySBLS(
         @PathVariable String sbls
-    ) {
-        return ResponseEntity.of(blsservice.blsBySbls(sbls));
-    }
-    
-    @GetMapping("/dto/{sbls}")                 
-    public ResponseEntity<List<BLS_Dto>> findBLSDTObySBLS(
-        @PathVariable String sbls
-    ) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-        return ResponseEntity.ok(data.findBLSDTObySBLS(sbls));
-    }
+    ) throws IllegalArgumentException, IllegalAccessException {
+        return ResponseEntity.ok(blsservice.toDto(blsservice.blsBySbls(sbls)));
+    }   
     
     @GetMapping("/dateiaufbau") 
     @ResponseBody

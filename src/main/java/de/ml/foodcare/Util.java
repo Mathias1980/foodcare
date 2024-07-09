@@ -1,6 +1,8 @@
 package de.ml.foodcare;
 
 import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.commons.math3.util.Precision;
 
 /**
@@ -24,6 +26,19 @@ public class Util {
                 }
             }
         }
+    }
+    
+    public static Map<String, Object> generateDTO(Object... sources) throws IllegalAccessException {
+        Map<String, Object> dto = new HashMap<>();
+        
+        for (Object source : sources) {
+            Field[] fields = source.getClass().getDeclaredFields();
+            for (Field field : fields) {
+                field.setAccessible(true);  // Mach das Feld zugänglich
+                dto.put(field.getName(), field.get(source));  // Attributname und Wert in die Map einfügen
+            }
+        }       
+        return dto;
     }
     
 }

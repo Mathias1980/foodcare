@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" >
+    <head>
+        <title>Foodcae</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <link th:href="@{/css/styles.css}" rel="stylesheet" />
+        <link th:href="@{/css/gliste.css}" rel="stylesheet" />
+        
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        <script src="https://code.highcharts.com/highcharts.js" defer="defer"></script>
+        <script src="/js/mllib.js" defer="defer"></script>
+        <script src="/js/foodcare.js" defer="defer"></script>
+        <script src="/js/highchart.js" defer="defer"></script>
+        
+        <script th:inline="javascript">
+            
+            /*<![CDATA[*/
+                const data = {                 
+                    user: /*[[${user}]]*/ 'default',
+                    usernames: /*[[${usernames}]]*/ 'default',
+                    kategorien: /*[[${kategorien}]]*/ 'default',
+                    gerichte: /*[[${gerichte}]]*/ 'default',
+                    sort: 'asc',
+                    gerichtById(id){
+                        return this.gerichte.filter(el => el.id === id)[0];
+                    },
+                    putGericht(gericht){
+                        this.gerichte.forEach((g, i) => {
+                            if (g.id === gericht.id) {
+                                this.gerichte.splice(i, 1);
+                            }
+                        });
+                        this.gerichte.push(gericht);
+                    },
+                    zutatById(gerichtId, sbls){
+                        return this.gerichte.filter(el => el.id === parseInt(gerichtId))[0].zutaten.filter(el => el.sbls === sbls)[0];
+                    }
+                }
+            /*]]>*/
+            
+        'use strict';
+        
+
+        document.addEventListener("DOMContentLoaded", evt => {
+
+            const user = document.querySelector('#user'); 
+            const kategorie = document.querySelector('#kategorie');
+            const suche = document.querySelector('#suche');
+            
+            const liste = document.querySelector('#liste');            
+            const chart = erstelleChart('chartContainer', basisOptionen);
+            
+            const drawChart = (ns) => {
+                let chartdata = ns.sort((a, b) => a.feld - b.feld).map(obj => ({
+                    ...obj,
+                    y: parseFloat(calculatePercentage(obj.abs, obj.avgG).toFixed(2))
+                  }));
+                chart.setSize(screen.width * 0.8, chartdata.length * 23);
+                chart.series[0].setData(chartdata);
+            }
+            
+            const drawGrid = (_gerichte, _container) => {
+                
+                _container.replaceChildren();
+                let table = createDOM('', 'table', _container);
+                let tr1 = createDOM('', 'tr', table);
+                createDOM('Gericht', 'th', tr1);
+                _gerichte[0].ns.sort((a, b) => a.feld - b.feld).forEach(el => {
+                        let title = createDOM(el.variable + ' (' + el.dimension + ')', 'th', tr1);
+                        title.style.background = el.color;
+                        title.classList.add("pointer");
+                        title.setAttribute('data-kurz', el.kurz);
+                        title.addEventListener('click', (evt) => {
+                            console.log(data.sort);
+                            drawGrid(data.sort === 'asc' ? data.gerichte.sort((a, b) => a.ns.filter(ns => ns.kurz === evt.target.dataset.kurz)[0].abs - b.ns.filter(ns => ns.kurz === evt.target.dataset.kurz)[0].abs) : data.gerichte.sort((b, a) => a.ns.filter(ns => ns.kurz === evt.target.dataset.kurz)[0].abs - b.ns.filter(ns => ns.kurz === evt.target.dataset.kurz)[0].abs), 
+                                                       _container);
+                            data.sort === 'asc' ? data.sort = 'desc' : data.sort = 'asc';
+                        });
+                    });                
+                _gerichte.forEach(g => {
+                    let row = createDOM('', 'tr', table);
+                    let title = createDOM(g.titel, 'td', row);
+                    title.classList.add("pointer");
+                    title.setAttribute('data-id', g.id);
+                    title.style.fontWeight='bold';
+                    title.addEventListener('click', evt => {
+                        let gericht = data.gerichtById(parseInt(evt.target.dataset.id));
+                        console.log(gericht);
+                        let fetchPromise;
+                        if(gericht.zutaten[0].ns.length === 0){
+                            console.log("-->");
+                            fetchPromise = fetch('/gerichte/ns/' + gericht.id).then(
+                                    res => res.json()
+                                ).then( res => {
+                                    data.putGericht(res);
+                                    console.log(data.gerichtById(res.id));
+                                }).catch(
+                                    error => {
+                                    console.error('Ein Fehler ist aufgetreten:', error);
+                                });
+                        }else{
+                            fetchPromise = Promise.resolve();
+                        }
+                        fetchPromise.finally(() => {
+                            const chartContainer = document.querySelector('#chartContainer');
+                            document.querySelector('#close').addEventListener('click', evt => mengenDialog.close());                       
+                            let dialogZutaten = document.querySelector('#dialog_zutaten');
+                            dialogZutaten.replaceChildren();
+                            gericht.zutaten.forEach( z => {
+                                let zutat = createDOM(z.bez + ' ' + z.menge + 'g', 'li', dialogZutaten, 'zutaten');
+                                    zutat.classList.add("pointer");
+                                    zutat.setAttribute('data-gericht', z.gerichtId);
+                                    zutat.setAttribute('data-sbls', z.sbls);
+                                    zutat.addEventListener('click', evt => {
+                                        drawChart(data.zutatById(evt.target.dataset.gericht, evt.target.dataset.sbls).ns);
+                                    });                    
+                            });
+                            let gesamt = createDOM('Gesamt', 'li', dialogZutaten, 'zutaten');
+                                gesamt.classList.add("pointer");
+                                gesamt.setAttribute('data-gericht', g.id);
+                                gesamt.addEventListener('click', evt => drawChart(data.gerichtById(evt.target.dataset.gericht).ns));
+                            drawChart(gericht.ns);
+                            mengenDialog.showModal();
+                        });
+                    });
+                    g.ns.sort((a, b) => a.feld - b.feld).forEach(ns => {
+                        createDOM(Number.parseFloat(ns.abs).toFixed(2), 'td', row);
+                    });                   
+                });
+            }
+            
+            const setUsernames = () => {
+                for (let un of data.usernames) {
+                    let option = document.createElement('option');
+                    option.innerHTML = un;
+                    option.value = un;
+                    user.append(option);
+                    if(option.value === data.user.username) user.value = option.value;
+                }
+            } 
+            
+            const setKategorie = () => {
+                for (let un of data.kategorien) {
+                    let option = document.createElement('option');
+                    option.innerHTML = un;
+                    option.value = un;
+                    kategorie.append(option);
+                    if(option.value === data.user.username) user.value = option.value;
+                }
+            }
+            
+            const init = () => {               
+                console.log(data);
+                setUsernames();
+                setKategorie();
+                drawGrid(data.gerichte.sort((a, b) => a.titel.localeCompare(b.titel)), document.querySelector('.table-container'));                     
+            }
+            
+            //user.addEventListener('change', handleUser);
+            //kategorie.addEventListener('change', handleKategorie);
+            
+            suche.addEventListener('input', evt => {
+                let el = evt.target.value;               
+                if(el.length > 3) {
+                    ausgabe.replaceChildren();
+                    data.suche(el).forEach( (item) => {
+                        let tr = createDOM('', 'tr', ausgabe);
+                        let td = createDOM(item.st, 'td', tr, 'pointer', item.sbls);
+                        td.addEventListener('click', loadBLS);
+                    });
+                }               
+            });
+            
+            init();
+
+        });
+        </script> 
+    </head>
+    <body>
+        <header th:replace="fragments/header.xhtml :: header">...</header>
+        
+        <section class="wahl">
+            <select id="user" name="user"></select>
+            <select id="kategorie" name="kategorie"></select>
+            <input type="text" name="suche" id="suche" placeholder="suche"/>
+        </section>
+
+        <div class="content">
+            <div class="table-container"></div>
+        </div>
+        
+        <dialog id="mengenDialog">
+            <div>
+              <button id="close" value="default">Schließen</button>
+            </div>
+            <ul id="dialog_zutaten"></ul>
+            <div id="chartContainer"></div>
+        </dialog>
+    </body>
+</html>

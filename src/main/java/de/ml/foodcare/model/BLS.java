@@ -1,6 +1,7 @@
 package de.ml.foodcare.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import de.ml.foodcare.model.gericht.IGericht;
 import de.ml.foodcare.model.gericht.Zutat;
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
@@ -30,7 +31,7 @@ import lombok.ToString;
 @ToString
 @Entity
 @Table(name = "bls")
-public class BLS  implements Serializable{
+public class BLS implements Serializable, IGericht{
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)    

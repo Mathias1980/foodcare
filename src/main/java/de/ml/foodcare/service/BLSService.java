@@ -1,14 +1,22 @@
 package de.ml.foodcare.service;
 
 import de.ml.foodcare.Util;
+import de.ml.foodcare.auth.User;
+import de.ml.foodcare.auth.UserService;
 import de.ml.foodcare.data.BLSRepository;
 import de.ml.foodcare.data.DateiaufbauRepository;
+import de.ml.foodcare.exceptions.ResourceNotFoundException;
 import de.ml.foodcare.model.BLS;
 import de.ml.foodcare.model.BLSReduced;
 import de.ml.foodcare.model.Dateiaufbau;
 import de.ml.foodcare.model.DateiaufbauZuordnung;
+import de.ml.foodcare.model.dto.BLSDto;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 /**
@@ -20,10 +28,16 @@ public class BLSService {
     
     private BLSRepository bls;
     private DateiaufbauRepository datei;
+    private DataService dservice;
+    private UserService uservice;
+    private DGEService dgeservice;
     
-    public BLSService(BLSRepository bls, DateiaufbauRepository datei){
+    public BLSService(BLSRepository bls, DateiaufbauRepository datei, DataService dservice, UserService uservice, DGEService dgeservice){
         this.bls = bls;
         this.datei = datei;
+        this.dservice = dservice;
+        this.uservice = uservice;
+        this.dgeservice = dgeservice;
     }
     
     public boolean existsBLSBySBLS(String sbls){
@@ -38,8 +52,8 @@ public class BLSService {
         return bls.findReducedByUntergruppe(untergruppe);
     }
     
-    public Optional<BLS> blsBySbls(String sbls){
-        return bls.findBySBLS(sbls).stream().findFirst();
+    public BLS blsBySbls(String sbls){
+        return bls.findBySBLS(sbls).stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("BLS nicht vorhanden"));
     }
     
     public List<BLS> findMaxValuesUG() {
@@ -110,6 +124,35 @@ public class BLSService {
     
     public List<BLSReduced> findZutatenByHashtagsAndKategorieAndUsername(List<String> hashtags, String kategorie, String username){
         return bls.findZutatenByHashtagsAndKategorieAndUsername(hashtags, kategorie, username);
+    }
+    
+    public BLSDto toDto(BLS b) throws IllegalArgumentException, IllegalAccessException{
+        List<Dateiaufbau> dliste = findDateiaufbau();
+        BLS avgG = findAvgValuesGesamt();
+        BLS avgHG = findAvgValuesByHauptgruppe(b.getSBLS().substring(0, 1));
+        BLS avgUG = findAvgValuesByUntergruppe(b.getSBLS().substring(0, 2));
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = uservice.findByUsername(authentication.getName()).get();
+        Map<String, Object> userDGE = dgeservice.findDGEByUser(user);
+        
+        return new BLSDto(b.getSBLS(), b.getST(), dservice.dto(b, dliste, Optional.of(avgG), Optional.of(avgHG), Optional.of(avgUG), Optional.of(userDGE), Optional.of(user)));
+    }
+    
+    public List<BLSDto> listeToDto(List<BLS> bliste) throws IllegalArgumentException, IllegalAccessException{
+        List<BLSDto> res = new ArrayList<>();
+        
+        List<Dateiaufbau> dliste = findDateiaufbau();
+        BLS avgG = findAvgValuesGesamt();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = uservice.findByUsername(authentication.getName()).get();
+        Map<String, Object> userDGE = dgeservice.findDGEByUser(user);
+        
+        for(BLS b:bliste){
+            BLS avgHG = findAvgValuesByHauptgruppe(b.getSBLS().substring(0, 1));
+            BLS avgUG = findAvgValuesByUntergruppe(b.getSBLS().substring(0, 2));
+            res.add(new BLSDto(b.getSBLS(), b.getST(), dservice.dto(b, dliste, Optional.of(avgG), Optional.of(avgHG), Optional.of(avgUG), Optional.of(userDGE), Optional.of(user))));
+        }
+        return res;                     
     }
     
 }

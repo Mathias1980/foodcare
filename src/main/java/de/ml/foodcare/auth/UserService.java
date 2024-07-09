@@ -1,6 +1,7 @@
 package de.ml.foodcare.auth;
 
 import de.ml.foodcare.data.UserRepository;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +16,14 @@ public class UserService {
     
     public UserService(UserRepository userrep){
         this.userrep = userrep;
+    }
+    
+    public List<User> findAll(){
+        return userrep.findAll();
+    }
+    
+    public List<String> findAllUsernames() {
+        return userrep.findAllUsernames();
     }
     
     public Optional<User> findByUsername(String username){

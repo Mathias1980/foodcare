@@ -2,7 +2,6 @@ package de.ml.foodcare.model.gericht;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import de.ml.foodcare.model.BLS;
-import de.ml.foodcare.model.dto.ZutatDto;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -26,7 +25,7 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
-public class Zutat {
+public class Zutat implements IGericht{
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -61,9 +60,5 @@ public class Zutat {
         this.bls = bls;
         this.menge = menge;
         this.modified = LocalDateTime.now();
-    }
-    
-    public ZutatDto toDto(){
-        return new ZutatDto(bls.getSBLS(), menge);
     }
 }
