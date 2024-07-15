@@ -1,11 +1,11 @@
 package de.ml.foodcare;
 
-import de.ml.foodcare.auth.Role;
-import de.ml.foodcare.auth.User;
-import de.ml.foodcare.data.BLSRepository;
-import de.ml.foodcare.data.DateiaufbauRepository;
+import de.ml.foodcare.auth.user.Role;
+import de.ml.foodcare.auth.user.User;
+import de.ml.foodcare.bls.BLSRepository;
+import de.ml.foodcare.bls.dateiaufbau.DateiaufbauRepository;
 import de.ml.foodcare.data.Import;
-import de.ml.foodcare.data.UserRepository;
+import de.ml.foodcare.auth.user.UserRepository;
 import java.util.Optional;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;

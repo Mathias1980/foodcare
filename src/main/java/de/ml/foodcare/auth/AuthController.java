@@ -1,6 +1,8 @@
 package de.ml.foodcare.auth;
 
-import de.ml.foodcare.data.UserRepository;
+import de.ml.foodcare.auth.user.User;
+import de.ml.foodcare.auth.user.UserService;
+import de.ml.foodcare.auth.user.UserRepository;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

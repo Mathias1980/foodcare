@@ -1,9 +1,9 @@
 package de.ml.foodcare.data;
 
-import de.ml.foodcare.data.BLSRepository;
-import de.ml.foodcare.data.DateiaufbauRepository;
-import de.ml.foodcare.model.BLS;
-import de.ml.foodcare.model.Dateiaufbau;
+import de.ml.foodcare.bls.BLSRepository;
+import de.ml.foodcare.bls.dateiaufbau.DateiaufbauRepository;
+import de.ml.foodcare.bls.BLS;
+import de.ml.foodcare.bls.dateiaufbau.Dateiaufbau;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
